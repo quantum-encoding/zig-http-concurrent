@@ -124,8 +124,8 @@ pub const CLI = struct {
         var conversation = try ai.ConversationContext.init(self.allocator);
         defer conversation.deinit();
 
-        const stdin = std.io.getStdIn().reader();
-        const stdout = std.io.getStdOut().writer();
+        const stdin = std.Io.getStdIn().reader();
+        const stdout = std.Io.getStdOut().writer();
 
         var buffer: [4096]u8 = undefined;
 
