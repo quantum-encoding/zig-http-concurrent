@@ -302,13 +302,34 @@ zig-ai deepseek "Explain monads" > deepseek_response.txt
 zig-ai claude "Explain monads" > claude_response.txt
 ```
 
-#### 6. Batch Processing (via script)
+#### 6. Batch Processing (built-in)
 ```bash
-#!/bin/bash
-while IFS=',' read -r provider prompt; do
-    echo "Testing $provider..."
-    zig-ai "$provider" "$prompt" >> results.txt
-done < prompts.csv
+# Process 100+ prompts concurrently
+zig-ai --batch prompts.csv --concurrency 100
+
+# Benchmark multiple providers on same prompts
+cat > benchmark.csv << EOF
+provider,prompt
+deepseek,"Explain monads"
+claude,"Explain monads"
+gemini,"Explain monads"
+grok,"Explain monads"
+EOF
+
+zig-ai --batch benchmark.csv --output benchmark_results.csv
+```
+
+#### 7. Data Annotation at Scale
+```bash
+# Create CSV with data to classify
+cat > classify.csv << EOF
+provider,prompt,temperature
+deepseek,"Classify sentiment: I love this product!",0.3
+deepseek,"Classify sentiment: This is terrible.",0.3
+deepseek,"Classify sentiment: It's okay I guess.",0.3
+EOF
+
+zig-ai --batch classify.csv --concurrency 50
 ```
 
 ## Output Format
