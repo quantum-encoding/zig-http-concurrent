@@ -197,36 +197,43 @@ pub const AnthropicClient = struct {
         var payload = std.ArrayList(u8){};
         defer payload.deinit(self.allocator);
 
-        var writer = payload.writer();
+        try payload.appendSlice(self.allocator, "{");
 
-        try writer.writeAll("{");
-        try writer.print("\"model\":\"{s}\",", .{config.model});
-        try writer.print("\"max_tokens\":{},", .{config.max_tokens});
+        const model_part = try std.fmt.allocPrint(self.allocator, "\"model\":\"{s}\",", .{config.model});
+        defer self.allocator.free(model_part);
+        try payload.appendSlice(self.allocator, model_part);
+
+        const tokens_part = try std.fmt.allocPrint(self.allocator, "\"max_tokens\":{},", .{config.max_tokens});
+        defer self.allocator.free(tokens_part);
+        try payload.appendSlice(self.allocator, tokens_part);
 
         // System prompt
         if (config.system_prompt) |system| {
             const escaped = try common.escapeJsonString(self.allocator, system);
             defer self.allocator.free(escaped);
-            try writer.print("\"system\":\"{s}\",", .{escaped});
+            const sys_part = try std.fmt.allocPrint(self.allocator, "\"system\":\"{s}\",", .{escaped});
+            defer self.allocator.free(sys_part);
+            try payload.appendSlice(self.allocator, sys_part);
         }
 
         // Temperature
-        try writer.print("\"temperature\":{d},", .{config.temperature});
+        const temp_part = try std.fmt.allocPrint(self.allocator, "\"temperature\":{d},", .{config.temperature});
+        defer self.allocator.free(temp_part);
+        try payload.appendSlice(self.allocator, temp_part);
 
         // Messages
-        try writer.writeAll("\"messages\":[");
+        try payload.appendSlice(self.allocator, "\"messages\":[");
         for (messages, 0..) |msg, i| {
-            if (i > 0) try writer.writeAll(",");
+            if (i > 0) try payload.appendSlice(self.allocator, ",");
 
             // Serialize message
-            var msg_buf = std.ArrayList(u8){};
-            defer msg_buf.deinit(self.allocator);
-            try std.json.stringify(msg, .{}, msg_buf.writer());
-            try writer.writeAll(msg_buf.items);
+            const msg_json = try std.json.stringifyAlloc(self.allocator, msg, .{});
+            defer self.allocator.free(msg_json);
+            try payload.appendSlice(self.allocator, msg_json);
         }
-        try writer.writeAll("]");
+        try payload.appendSlice(self.allocator, "]");
 
-        try writer.writeAll("}");
+        try payload.appendSlice(self.allocator, "}");
 
         return payload.toOwnedSlice(self.allocator);
     }
