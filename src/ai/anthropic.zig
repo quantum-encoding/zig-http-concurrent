@@ -98,15 +98,9 @@ pub const AnthropicClient = struct {
             const payload = try self.buildRequestPayload(messages.items, config);
             defer self.allocator.free(payload);
 
-            // Debug: print request payload
-            std.debug.print("\n[DEBUG] Request Payload (first 500 chars):\n{s}\n\n", .{payload[0..@min(500, payload.len)]});
-
             // Make API request
             const response = try self.makeRequest(payload);
             defer self.allocator.free(response);
-
-            // Debug: print response to help diagnose issues
-            std.debug.print("\n[DEBUG] API Response (first 500 chars):\n{s}\n\n", .{response[0..@min(500, response.len)]});
 
             // Parse response
             const parsed = try std.json.parseFromSlice(
