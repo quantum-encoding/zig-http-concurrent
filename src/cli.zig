@@ -19,6 +19,7 @@
 
 const std = @import("std");
 const ai = @import("ai.zig");
+const model_costs = @import("model_costs.zig");
 
 pub const CLIConfig = struct {
     provider: Provider = .deepseek,
