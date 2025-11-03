@@ -117,9 +117,11 @@ pub const VertexClient = struct {
         if (context.len > 0) try contents.appendSlice(self.allocator, ",");
         const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
         defer self.allocator.free(escaped_prompt);
-        try contents.writer().print(
+        const prompt_json = try std.fmt.allocPrint(self.allocator,
             \\{{"role":"user","parts":[{{"text":"{s}"}}]}}
         , .{escaped_prompt});
+        defer self.allocator.free(prompt_json);
+        try contents.appendSlice(self.allocator, prompt_json);
 
         try contents.appendSlice(self.allocator, "]");
 
