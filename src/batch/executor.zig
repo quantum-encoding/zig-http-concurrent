@@ -275,7 +275,7 @@ pub const BatchExecutor = struct {
             .grok => blk: {
                 const api_key = std.process.getEnvVarOwned(
                     self.allocator,
-                    "GROK_API_KEY",
+                    "XAI_API_KEY",
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
