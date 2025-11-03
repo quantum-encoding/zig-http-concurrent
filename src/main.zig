@@ -138,6 +138,53 @@ pub fn main() !void {
         return;
     }
 
+    // Handle batch mode
+    if (batch_mode) {
+        const input_file = batch_input orelse {
+            std.debug.print("❌ Error: --batch requires an input CSV file\n", .{});
+            return error.MissingBatchInput;
+        };
+
+        // Parse CSV file
+        std.debug.print("📄 Parsing CSV file: {s}\n", .{input_file});
+        const requests = batch.parseFile(allocator, input_file) catch |err| {
+            std.debug.print("❌ Error parsing CSV: {}\n", .{err});
+            return err;
+        };
+        defer {
+            for (requests) |*req| req.deinit();
+            allocator.free(requests);
+        }
+
+        // Generate output filename if not specified
+        const output_file = batch_output orelse blk: {
+            const generated = try batch.generateOutputFilename(allocator);
+            break :blk generated;
+        };
+        defer if (batch_output == null) allocator.free(output_file);
+
+        // Create batch config
+        const batch_config = batch.BatchConfig{
+            .input_file = input_file,
+            .output_file = output_file,
+            .concurrency = batch_concurrency,
+            .full_responses = batch_full_responses,
+            .retry_count = batch_retry,
+        };
+
+        // Execute batch
+        var executor = try batch.BatchExecutor.init(allocator, requests, batch_config);
+        defer executor.deinit();
+
+        try executor.execute();
+
+        // Write results
+        const results = try executor.getResults();
+        try batch.writeResults(allocator, results, output_file, batch_full_responses);
+
+        return;
+    }
+
     // Check if API key is set
     const env_var = config.provider.getEnvVar();
     const has_key = std.process.hasEnvVar(allocator, env_var) catch false;
