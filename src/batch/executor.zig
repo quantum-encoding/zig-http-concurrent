@@ -260,7 +260,7 @@ pub const BatchExecutor = struct {
             .gemini => blk: {
                 const api_key = std.process.getEnvVarOwned(
                     self.allocator,
-                    "GEMINI_API_KEY",
+                    "GOOGLE_GENAI_API_KEY",
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
