@@ -87,7 +87,7 @@ pub fn generateOutputFilename(allocator: std.mem.Allocator) ![]u8 {
     const timestamp = std.time.timestamp();
     return try std.fmt.allocPrint(
         allocator,
-        "batch_results_{}.csv",
+        "batch_results_{d}.csv",
         .{timestamp},
     );
 }
