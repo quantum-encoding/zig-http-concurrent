@@ -139,15 +139,15 @@ pub const AnthropicClient = struct {
             }
 
             // Extract text response
-            var text_content = std.ArrayList(u8).init(self.allocator);
-            defer text_content.deinit();
+            var text_content = std.ArrayList(u8){};
+            defer text_content.deinit(self.allocator);
 
             for (content_array.array.items) |block| {
                 if (block.object.get("type")) |type_val| {
                     if (std.mem.eql(u8, type_val.string, "text")) {
                         if (block.object.get("text")) |text_val| {
                             if (text_content.items.len > 0) {
-                                try text_content.appendSlice("\n");
+                                try text_content.appendSlice(self.allocator, "\n");
                             }
                             try text_content.appendSlice(text_val.string);
                         }
@@ -163,7 +163,7 @@ pub const AnthropicClient = struct {
                     .id = try self.allocator.dupe(u8,
                         parsed.value.object.get("id").?.string),
                     .role = .assistant,
-                    .content = try text_content.toOwnedSlice(),
+                    .content = try text_content.toOwnedSlice(self.allocator),
                     .timestamp = end_time,
                     .allocator = self.allocator,
                 },
@@ -194,8 +194,8 @@ pub const AnthropicClient = struct {
         messages: []const std.json.Value,
         config: common.RequestConfig,
     ) ![]u8 {
-        var payload = std.ArrayList(u8).init(self.allocator);
-        defer payload.deinit();
+        var payload = std.ArrayList(u8){};
+        defer payload.deinit(self.allocator);
 
         var writer = payload.writer();
 
@@ -219,8 +219,8 @@ pub const AnthropicClient = struct {
             if (i > 0) try writer.writeAll(",");
 
             // Serialize message
-            var msg_buf = std.ArrayList(u8).init(self.allocator);
-            defer msg_buf.deinit();
+            var msg_buf = std.ArrayList(u8){};
+            defer msg_buf.deinit(self.allocator);
             try std.json.stringify(msg, .{}, msg_buf.writer());
             try writer.writeAll(msg_buf.items);
         }
@@ -228,7 +228,7 @@ pub const AnthropicClient = struct {
 
         try writer.writeAll("}");
 
-        return payload.toOwnedSlice();
+        return payload.toOwnedSlice(self.allocator);
     }
 
     fn makeRequest(self: *AnthropicClient, payload: []const u8) ![]u8 {
