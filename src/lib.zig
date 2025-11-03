@@ -21,12 +21,24 @@ pub const retry = @import("retry/retry.zig");
 // Error definitions
 pub const errors = @import("errors.zig");
 
+// AI provider clients (Claude, DeepSeek, Gemini, Grok, Vertex)
+pub const ai = @import("ai.zig");
+
 // Re-export main types for convenience
 pub const ConnectionPool = pool.ConnectionPool;
 pub const ClientPool = client_pool.ClientPool;
 pub const HttpWorker = client_pool.HttpWorker;
 pub const RetryEngine = retry.RetryEngine;
 pub const HttpError = errors.HttpError;
+
+// AI exports
+pub const AIClient = ai.AIClient;
+pub const ClaudeClient = ai.ClaudeClient;
+pub const DeepSeekClient = ai.DeepSeekClient;
+pub const GeminiClient = ai.GeminiClient;
+pub const GrokClient = ai.GrokClient;
+pub const VertexClient = ai.VertexClient;
+pub const ResponseManager = ai.ResponseManager;
 
 test {
     std.testing.refAllDecls(@This());
