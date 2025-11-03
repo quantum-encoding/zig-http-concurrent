@@ -337,7 +337,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const api_key = try std.process.getEnvVarOwned(self.allocator, "GROK_API_KEY");
+        const api_key = try std.process.getEnvVarOwned(self.allocator, "XAI_API_KEY");
         defer self.allocator.free(api_key);
 
         var client = ai.GrokClient.init(self.allocator, api_key);
