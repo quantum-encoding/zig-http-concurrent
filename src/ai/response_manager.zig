@@ -318,7 +318,7 @@ test "ResponseManager basic operations" {
         .allocator = allocator,
     };
 
-    var response = common.AIResponse{
+    const response = common.AIResponse{
         .message = .{
             .id = try allocator.dupe(u8, "msg-1"),
             .role = .assistant,
