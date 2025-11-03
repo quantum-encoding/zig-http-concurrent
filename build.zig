@@ -9,10 +9,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/lib.zig"),
     });
 
-    // Build tests (using the Zig 0.16.0 API)
-    const lib_unit_tests = b.addTest(.{});
-    lib_unit_tests.root_module.addAnonymousImport("root", .{
-        .root_source_file = b.path("src/lib.zig"),
+    // Build tests - using Zig 0.16.0 test API
+    // In 0.16, we need to pass the module directly
+    const lib_unit_tests = b.addTest(.{
+        .root_module = http_sentinel,
     });
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
