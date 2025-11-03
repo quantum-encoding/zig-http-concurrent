@@ -24,6 +24,9 @@ pub const errors = @import("errors.zig");
 // AI provider clients (Claude, DeepSeek, Gemini, Grok, Vertex)
 pub const ai = @import("ai.zig");
 
+// Batch processing (CSV batch/parallel prompts)
+pub const batch = @import("batch.zig");
+
 // Re-export main types for convenience
 pub const ConnectionPool = pool.ConnectionPool;
 pub const ClientPool = client_pool.ClientPool;
