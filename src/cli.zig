@@ -132,15 +132,12 @@ pub const CLI = struct {
         var stdout_buffer: [256]u8 = undefined;
         var stdout_writer = stdout_file.writer(&stdout_buffer);
 
-        var input_buffer: [4096]u8 = undefined;
-
         while (true) {
             try stdout_writer.interface.writeAll("\n👤 You: ");
             try stdout_writer.interface.flush();
 
             const input = stdin_reader.interface.takeDelimiter('\n') catch |err| switch (err) {
-                error.EndOfStream => break,
-                else => return err,
+                error.ReadFailed, error.StreamTooLong => return err,
             } orelse break;
             const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
 
