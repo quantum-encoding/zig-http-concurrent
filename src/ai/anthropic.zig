@@ -65,13 +65,13 @@ pub const AnthropicClient = struct {
         const start_time = std.time.milliTimestamp();
 
         // Build messages array
-        var messages = std.ArrayList(std.json.Value).init(self.allocator);
-        defer messages.deinit();
+        var messages = std.ArrayList(std.json.Value){};
+        defer messages.deinit(self.allocator);
 
         // Add context messages
         for (context) |msg| {
             const msg_value = try self.buildMessageJson(msg);
-            try messages.append(msg_value);
+            try messages.append(self.allocator, msg_value);
         }
 
         // Add current prompt
