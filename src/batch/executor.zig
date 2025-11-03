@@ -249,7 +249,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = @import("../ai/deepseek.zig").DeepSeekClient.init(
+                var client = DeepSeekClient.init(
                     self.allocator,
                     api_key,
                 );
@@ -264,7 +264,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = @import("../ai/gemini.zig").GeminiClient.init(
+                var client = GeminiClient.init(
                     self.allocator,
                     api_key,
                 );
@@ -279,7 +279,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = @import("../ai/grok.zig").GrokClient.init(
+                var client = GrokClient.init(
                     self.allocator,
                     api_key,
                 );
@@ -294,7 +294,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(project_id);
 
-                var client = @import("../ai/vertex.zig").VertexClient.init(
+                var client = VertexClient.init(
                     self.allocator,
                     .{ .project_id = project_id },
                 );
