@@ -199,7 +199,8 @@ pub const CLI = struct {
             var response = try self.sendToProvider(trimmed, context_slice);
             defer response.deinit();
 
-            try stdout.print("\n🤖 {s}:\n{s}\n", .{ self.config.provider.displayName(), response.message.content });
+            try stdout_writer.interface.print("\n🤖 {s}:\n{s}\n", .{ self.config.provider.displayName(), response.message.content });
+            try stdout_writer.interface.flush();
 
             if (self.config.show_usage) {
                 self.printUsage(response);
