@@ -321,9 +321,11 @@ pub const VertexClient = struct {
         const escaped = try common.escapeJsonString(self.allocator, msg.content);
         defer self.allocator.free(escaped);
 
-        try writer.writer().print(
+        const msg_json = try std.fmt.allocPrint(self.allocator,
             \\{{"role":"{s}","parts":[{{"text":"{s}"}}]}}
         , .{ role, escaped });
+        defer self.allocator.free(msg_json);
+        try writer.appendSlice(self.allocator, msg_json);
     }
 
     /// Helper: Create default config for Gemini Pro on Vertex
