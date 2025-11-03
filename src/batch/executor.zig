@@ -162,7 +162,7 @@ pub const BatchExecutor = struct {
                 result.response = self.allocator.dupe(u8, ai_response.message.content) catch |err| {
                     result.error_message = std.fmt.allocPrint(
                         self.allocator,
-                        "Failed to copy response: {}",
+                        "Failed to copy response: {any}",
                         .{err},
                     ) catch null;
                     break;
