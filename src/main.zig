@@ -68,6 +68,41 @@ pub fn main() !void {
             config.show_usage = false;
         } else if (std.mem.eql(u8, arg, "--no-cost")) {
             config.show_cost = false;
+        } else if (std.mem.eql(u8, arg, "--batch") or std.mem.eql(u8, arg, "-b")) {
+            i += 1;
+            if (i >= args.len) {
+                std.debug.print("❌ Error: --batch requires a file path\n", .{});
+                return error.MissingArgument;
+            }
+            batch_mode = true;
+            batch_input = args[i];
+        } else if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
+            i += 1;
+            if (i >= args.len) {
+                std.debug.print("❌ Error: --output requires a file path\n", .{});
+                return error.MissingArgument;
+            }
+            batch_output = args[i];
+        } else if (std.mem.eql(u8, arg, "--concurrency")) {
+            i += 1;
+            if (i >= args.len) {
+                std.debug.print("❌ Error: --concurrency requires a value\n", .{});
+                return error.MissingArgument;
+            }
+            batch_concurrency = try std.fmt.parseInt(u32, args[i], 10);
+            if (batch_concurrency == 0 or batch_concurrency > 200) {
+                std.debug.print("❌ Error: --concurrency must be between 1 and 200\n", .{});
+                return error.InvalidArgument;
+            }
+        } else if (std.mem.eql(u8, arg, "--full-responses")) {
+            batch_full_responses = true;
+        } else if (std.mem.eql(u8, arg, "--retry")) {
+            i += 1;
+            if (i >= args.len) {
+                std.debug.print("❌ Error: --retry requires a value\n", .{});
+                return error.MissingArgument;
+            }
+            batch_retry = try std.fmt.parseInt(u32, args[i], 10);
         } else if (std.mem.startsWith(u8, arg, "--")) {
             std.debug.print("❌ Error: Unknown option: {s}\n", .{arg});
             cli.printUsage();
