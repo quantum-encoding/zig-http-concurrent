@@ -171,8 +171,7 @@ pub const CLI = struct {
                     try stdout_writer.interface.flush();
 
                     const provider_input = stdin_reader.interface.takeDelimiter('\n') catch |err| switch (err) {
-                        error.EndOfStream => continue,
-                        else => return err,
+                        error.ReadFailed, error.StreamTooLong => return err,
                     } orelse continue;
                     const provider_trimmed = std.mem.trim(u8, provider_input, &std.ascii.whitespace);
 
