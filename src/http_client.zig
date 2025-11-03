@@ -39,7 +39,7 @@ pub const HttpClient = struct {
 
         if (std.mem.eql(u8, encoding, "gzip")) {
             // Decompress gzip response
-            const stream = std.io.fixedBufferStream(body_data);
+            const stream = std.Io.fixedBufferStream(body_data);
             var decompressor = try std.compress.flate.Decompress.gzipStream(self.allocator, stream);
             defer decompressor.deinit();
 
