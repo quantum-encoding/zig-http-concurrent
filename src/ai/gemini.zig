@@ -228,6 +228,7 @@ pub const GeminiClient = struct {
 
         const headers = [_]std.http.Header{
             .{ .name = "Content-Type", .value = "application/json" },
+            .{ .name = "Accept-Encoding", .value = "identity" }, // Disable compression
         };
 
         var response = try self.http_client.post(endpoint, &headers, payload);
