@@ -29,7 +29,7 @@ pub const ResponseManager = struct {
         for (self.responses.items) |*response| {
             response.deinit();
         }
-        self.responses.deinit();
+        self.responses.deinit(self.allocator);
 
         var it = self.conversations.iterator();
         while (it.next()) |entry| {
