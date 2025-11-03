@@ -193,7 +193,7 @@ pub const BatchExecutor = struct {
                     // Final failure - store error
                     result.error_message = std.fmt.allocPrint(
                         self.allocator,
-                        "{}",
+                        "{any}",
                         .{err},
                     ) catch null;
 
