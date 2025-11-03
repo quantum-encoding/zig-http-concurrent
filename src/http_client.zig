@@ -126,8 +126,12 @@ pub const HttpClient = struct {
         defer self.allocator.free(body_data);
 
         // Decompress body if needed
-        const content_encoding = response.head.getFirstValue("content-encoding");
-        const final_body = try self.decompressBody(body_data, content_encoding);
+        const content_encoding_str: ?[]const u8 = switch (response.head.content_encoding) {
+            .gzip => "gzip",
+            .identity => null,
+            else => null, // We only support gzip for now
+        };
+        const final_body = try self.decompressBody(body_data, content_encoding_str);
 
         return Response{
             .status = response.head.status,
