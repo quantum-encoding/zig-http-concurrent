@@ -168,6 +168,70 @@ zig-ai --list
 | `--no-usage` | | Hide token usage stats | `zig-ai --no-usage deepseek "..."` |
 | `--no-cost` | | Hide cost estimates | `zig-ai --no-cost claude "..."` |
 
+### Batch Mode
+
+Batch mode allows you to process multiple prompts concurrently from a CSV file:
+
+```bash
+$ zig-ai --batch prompts.csv
+```
+
+**CSV Format:**
+```csv
+provider,prompt,temperature,max_tokens,system_prompt
+deepseek,"What is Zig?",1.0,512,
+claude,"Explain async/await",0.7,1024,"You are a programming tutor"
+gemini,"Write a haiku",1.5,256,
+```
+
+**Required columns:** `provider`, `prompt`
+**Optional columns:** `temperature`, `max_tokens`, `system_prompt`
+
+**Batch Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--batch <file>` | Input CSV file | Required |
+| `--output <file>` | Output CSV file | `batch_results_{timestamp}.csv` |
+| `--concurrency <n>` | Max concurrent requests | 50 |
+| `--retry <n>` | Retry attempts per request | 2 |
+| `--full-responses` | Save full responses to separate files | false |
+
+**Example Output:**
+```csv
+id,provider,prompt,response,input_tokens,output_tokens,cost,execution_time_ms,error
+1,deepseek,"What is Zig?","Zig is a general-purpose...",11,29,0.000010,1234,
+2,claude,"Explain async","Async/await is...",8,156,0.002496,2456,
+```
+
+**Advanced Batch Examples:**
+
+```bash
+# High concurrency
+zig-ai --batch prompts.csv --concurrency 100
+
+# Custom output with full responses
+zig-ai --batch prompts.csv --output results/experiment_1.csv --full-responses
+
+# With retries for unstable connections
+zig-ai --batch prompts.csv --retry 5 --concurrency 20
+```
+
+**Progress Tracking:**
+```
+🔄 Starting batch processing...
+   Requests: 100
+   Concurrency: 50
+   Retry count: 2
+
+[INFO] Processed 45/100 requests (✅ 42 ❌ 3)...
+
+✨ Batch complete!
+   Total time: 12.34s
+   Success: 97
+   Failed: 3
+```
+
 ### Interactive Mode
 
 Interactive mode provides a conversation experience with persistent context:
