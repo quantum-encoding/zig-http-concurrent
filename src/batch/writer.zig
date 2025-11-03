@@ -19,7 +19,8 @@ pub fn writeResults(
     const file = try std.fs.cwd().createFile(output_path, .{});
     defer file.close();
 
-    const writer = file.writer();
+    var buffer: [4096]u8 = undefined;
+    const writer = file.writer(&buffer);
 
     // Write CSV header
     try writer.writeAll("id,provider,prompt,response,input_tokens,output_tokens,cost,execution_time_ms,error\n");
