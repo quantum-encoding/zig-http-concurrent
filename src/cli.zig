@@ -124,15 +124,24 @@ pub const CLI = struct {
         var conversation = try ai.ConversationContext.init(self.allocator);
         defer conversation.deinit();
 
-        const stdin = std.Io.getStdIn().reader();
-        const stdout = std.Io.getStdOut().writer();
+        const stdin_file = std.fs.File.stdin();
+        var stdin_buffer: [256]u8 = undefined;
+        var stdin_reader = stdin_file.reader(&stdin_buffer);
 
-        var buffer: [4096]u8 = undefined;
+        const stdout_file = std.fs.File.stdout();
+        var stdout_buffer: [256]u8 = undefined;
+        var stdout_writer = stdout_file.writer(&stdout_buffer);
+
+        var input_buffer: [4096]u8 = undefined;
 
         while (true) {
-            try stdout.print("\n👤 You: ", .{});
+            try stdout_writer.interface.writeAll("\n👤 You: ");
+            try stdout_writer.interface.flush();
 
-            const input = (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) orelse break;
+            const input = stdin_reader.interface.takeDelimiter('\n') catch |err| switch (err) {
+                error.EndOfStream => break,
+                else => return err,
+            } orelse break;
             const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
 
             if (trimmed.len == 0) continue;
