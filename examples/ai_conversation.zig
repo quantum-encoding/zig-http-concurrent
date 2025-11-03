@@ -159,7 +159,7 @@ fn runConversationWithClaude(allocator: std.mem.Allocator) !void {
     // Turn 2 (with context)
     std.debug.print("👤 User: What makes it different from Rust?\n\n", .{});
 
-    var user_msg = AIMessage{
+    const user_msg = AIMessage{
         .id = try http_sentinel.ai.common.generateId(allocator),
         .role = .user,
         .content = try allocator.dupe(u8, "What makes it different from Rust?"),
