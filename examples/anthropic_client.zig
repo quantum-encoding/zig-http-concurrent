@@ -128,8 +128,8 @@ const AnthropicClient = struct {
         const allocator = self.http_client.allocator;
         
         // Build messages array JSON
-        var messages_json = std.ArrayList(u8).init(allocator);
-        defer messages_json.deinit();
+        var messages_json = std.ArrayList(u8){};
+        defer messages_json.deinit(allocator);
         
         try messages_json.appendSlice("[");
         for (messages, 0..) |msg, i| {
