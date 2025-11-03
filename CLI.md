@@ -123,6 +123,7 @@ export XAI_API_KEY="your-key-here"
 ```bash
 zig-ai [provider] [options] "prompt"
 zig-ai --interactive [provider]
+zig-ai --batch <csv_file> [options]
 zig-ai --list
 zig-ai --help
 ```
