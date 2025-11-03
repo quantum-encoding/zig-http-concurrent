@@ -98,7 +98,7 @@ fn runConversationWithDeepSeek(allocator: std.mem.Allocator) !void {
     // Turn 3 (with full context)
     std.debug.print("👤 User: Give me a code example\n\n", .{});
 
-    var user_msg2 = AIMessage{
+    const user_msg2 = AIMessage{
         .id = try http_sentinel.ai.common.generateId(allocator),
         .role = .user,
         .content = try allocator.dupe(u8, "Give me a simple Zig code example"),
