@@ -90,9 +90,45 @@ else
 fi
 echo ""
 
+# Test 7: Batch mode CSV validation
+echo "Test 7: Batch mode CSV parsing"
+cat > /tmp/test_batch.csv << 'EOF'
+provider,prompt
+deepseek,"test prompt"
+EOF
+
+if zig build cli -- --batch /tmp/test_batch.csv 2>&1 | grep -q "Parsing CSV file"; then
+    echo "✅ PASS: Batch mode CSV parsing works"
+    rm -f /tmp/test_batch.csv batch_results_*.csv 2>/dev/null
+else
+    echo "❌ FAIL: Batch mode CSV parsing failed"
+    rm -f /tmp/test_batch.csv 2>/dev/null
+    exit 1
+fi
+echo ""
+
+# Test 8: Batch mode invalid CSV handling
+echo "Test 8: Batch mode invalid CSV detection"
+cat > /tmp/invalid_batch.csv << 'EOF'
+invalid_header,wrong
+test,data
+EOF
+
+if zig build cli -- --batch /tmp/invalid_batch.csv 2>&1 | grep -q "Error"; then
+    echo "✅ PASS: Invalid CSV detected"
+    rm -f /tmp/invalid_batch.csv 2>/dev/null
+else
+    echo "❌ FAIL: Invalid CSV not detected"
+    rm -f /tmp/invalid_batch.csv 2>/dev/null
+    exit 1
+fi
+echo ""
+
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║  🎉 All smoke tests passed!                             ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "Note: These tests verify basic CLI functionality."
 echo "Integration tests with actual API calls require valid API keys."
+echo ""
+echo "Batch mode is available with: zig-ai --batch <csv_file>"
