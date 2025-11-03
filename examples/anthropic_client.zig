@@ -205,8 +205,8 @@ const AnthropicClient = struct {
     fn escapeJsonString(self: *AnthropicClient, allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         _ = self;
         
-        var result = std.ArrayList(u8).init(allocator);
-        defer result.deinit();
+        var result = std.ArrayList(u8){};
+        defer result.deinit(allocator);
         
         for (input) |char| {
             switch (char) {
