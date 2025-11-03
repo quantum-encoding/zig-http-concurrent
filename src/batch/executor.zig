@@ -315,18 +315,12 @@ pub const BatchExecutor = struct {
         self.results_mutex.lock();
         defer self.results_mutex.unlock();
 
-        // Sort by ID
-        const SortContext = struct {
-            items: []types.BatchResult,
-
-            pub fn lessThan(ctx: @This(), a_index: usize, b_index: usize) bool {
-                return ctx.items[a_index].id < ctx.items[b_index].id;
+        // Sort by ID using new Zig 0.16.0 API
+        std.mem.sort(types.BatchResult, self.results.items, {}, struct {
+            pub fn lessThan(_: void, a: types.BatchResult, b: types.BatchResult) bool {
+                return a.id < b.id;
             }
-        };
-
-        std.mem.sort(types.BatchResult, self.results.items, SortContext{
-            .items = self.results.items,
-        }, SortContext.lessThan);
+        }.lessThan);
 
         return self.results.items;
     }
