@@ -73,4 +73,13 @@ pub fn build(b: *std.Build) void {
     const run_ai_conversation = b.addRunArtifact(ai_conversation);
     const ai_conversation_step = b.step("ai-conversation", "Run AI conversation example");
     ai_conversation_step.dependOn(&run_ai_conversation.step);
+
+    // CLI Tool
+    const cli = addExample(b, "zig-ai", "src/main.zig", target, optimize, http_sentinel_module);
+    const run_cli = b.addRunArtifact(cli);
+    if (b.args) |args| {
+        run_cli.addArgs(args);
+    }
+    const cli_step = b.step("cli", "Run AI Providers CLI");
+    cli_step.dependOn(&run_cli.step);
 }
