@@ -153,7 +153,7 @@ pub const BatchExecutor = struct {
             }
 
             // Execute the request
-            const execute_result = self.executeWithProvider(request);
+            var execute_result = self.executeWithProvider(request);
 
             if (execute_result) |*ai_response| {
                 defer ai_response.deinit();
