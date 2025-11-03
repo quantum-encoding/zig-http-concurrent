@@ -303,8 +303,8 @@ pub fn parseApiError(response_body: []const u8) AIError {
     if (std.mem.indexOf(u8, response_body, "quota")) |_| {
         return AIError.QuotaExceeded;
     }
-    if (std.mem.indexOf(u8, response_body, "authentication") or
-        std.mem.indexOf(u8, response_body, "unauthorized")) |_| {
+    if (std.mem.indexOf(u8, response_body, "authentication") != null or
+        std.mem.indexOf(u8, response_body, "unauthorized") != null) {
         return AIError.AuthenticationFailed;
     }
     if (std.mem.indexOf(u8, response_body, "invalid_request")) |_| {
