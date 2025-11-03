@@ -118,18 +118,20 @@ pub const HttpClient = struct {
 
         var transfer_buffer: [8192]u8 = undefined;
         const response_reader = response.reader(&transfer_buffer);
-        
+
         const body_data = try response_reader.allocRemaining(
             self.allocator,
             std.Io.Limit.limited(options.max_body_size)
         );
         defer self.allocator.free(body_data);
 
-        const body_slice = try self.allocator.dupe(u8, body_data);
+        // Decompress body if needed
+        const content_encoding = response.head.getFirstValue("content-encoding");
+        const final_body = try self.decompressBody(body_data, content_encoding);
 
         return Response{
             .status = response.head.status,
-            .body = body_slice,
+            .body = final_body,
             .allocator = self.allocator,
         };
     }
