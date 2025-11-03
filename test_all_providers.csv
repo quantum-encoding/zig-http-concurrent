@@ -1,0 +1,5 @@
+provider,prompt,temperature,max_tokens,system_prompt
+claude,"What is 2+2?",1.0,128,
+deepseek,"What is the capital of Japan?",1.0,128,
+gemini,"Name one color",1.0,128,
+grok,"Say hello",1.0,128,
