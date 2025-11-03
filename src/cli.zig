@@ -76,6 +76,29 @@ pub const Provider = enum {
             .vertex => "VERTEX_PROJECT_ID",
         };
     }
+
+    pub fn getDefaultModel(self: Provider) []const u8 {
+        return switch (self) {
+            .claude => "claude-3-7-sonnet-20250219",
+            .deepseek => "deepseek-chat",
+            .gemini => "gemini-2.5-flash",
+            .grok => "grok-2-latest",
+            .vertex => "gemini-2.5-pro",
+        };
+    }
+
+    pub fn calculateCost(self: Provider, input_tokens: u32, output_tokens: u32) f64 {
+        const input_f = @as(f64, @floatFromInt(input_tokens)) / 1000.0;
+        const output_f = @as(f64, @floatFromInt(output_tokens)) / 1000.0;
+
+        return switch (self) {
+            .claude => input_f * 3.0 + output_f * 15.0,
+            .deepseek => input_f * 0.00014 + output_f * 0.00028,
+            .gemini => input_f * 0.075 + output_f * 0.30,
+            .grok => input_f * 2.0 + output_f * 10.0,
+            .vertex => input_f * 1.25 + output_f * 5.0,
+        };
+    }
 };
 
 pub const CLI = struct {
