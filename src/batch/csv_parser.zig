@@ -75,7 +75,7 @@ fn parseHeader(allocator: std.mem.Allocator, header_line: []const u8) ![][]const
     var headers = std.ArrayList([]const u8){};
     errdefer headers.deinit(allocator);
 
-    var fields = try parseFields(allocator, header_line);
+    const fields = try parseFields(allocator, header_line);
     defer {
         for (fields) |field| allocator.free(field);
         allocator.free(fields);
