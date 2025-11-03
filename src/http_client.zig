@@ -8,13 +8,14 @@ const std = @import("std");
 const http = std.http;
 
 /// A robust, thread-safe HTTP client for Zig 0.16.0
-/// 
+///
 /// Features:
 /// - Simplified API for GET, POST, PUT, PATCH, DELETE operations
 /// - Automatic memory management with proper cleanup
 /// - Thread-safe design (each thread should use its own client instance)
 /// - Configurable request timeouts and limits
 /// - Support for custom headers
+/// - Automatic gzip decompression
 pub const HttpClient = struct {
     allocator: std.mem.Allocator,
     client: http.Client,
@@ -30,6 +31,36 @@ pub const HttpClient = struct {
     /// Clean up client resources
     pub fn deinit(self: *HttpClient) void {
         self.client.deinit();
+    }
+
+    /// Decompress gzip-encoded body if needed
+    fn decompressBody(self: *HttpClient, body_data: []const u8, content_encoding: ?[]const u8) ![]u8 {
+        const encoding = content_encoding orelse "identity";
+
+        if (std.mem.eql(u8, encoding, "gzip")) {
+            // Decompress gzip response
+            var stream = std.io.fixedBufferStream(body_data);
+            var decompressor = try std.compress.flate.Decompress.gzipStream(self.allocator, stream);
+            defer decompressor.deinit();
+
+            var decompressed = std.ArrayList(u8){};
+            defer decompressed.deinit(self.allocator);
+
+            var buffer: [4096]u8 = undefined;
+            while (true) {
+                const n = decompressor.reader().read(&buffer) catch |err| switch (err) {
+                    error.EndOfStream => break,
+                    else => return err,
+                };
+                if (n == 0) break;
+                try decompressed.appendSlice(self.allocator, buffer[0..n]);
+            }
+
+            return try decompressed.toOwnedSlice(self.allocator);
+        }
+
+        // No compression or unsupported encoding
+        return try self.allocator.dupe(u8, body_data);
     }
 
     /// Response structure containing status code and body
