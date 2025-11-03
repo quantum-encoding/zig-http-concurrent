@@ -19,7 +19,8 @@ A production-ready CLI tool for interacting with multiple AI providers from the 
 
 📊 **Rich Output**
 - Token usage tracking
-- Cost estimation per query
+- **Accurate cost calculation** using real-time pricing from `model_costs.csv`
+- Per-model pricing for precise cost estimation
 - Formatted, readable responses
 
 ⚙️ **Highly Configurable**
