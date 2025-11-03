@@ -236,7 +236,7 @@ pub const BatchExecutor = struct {
 
                 var client = anthropic.AnthropicClient.init(
                     self.allocator,
-                    api_key,
+                    .{ .api_key = api_key },
                 );
                 defer client.deinit();
 
