@@ -75,7 +75,7 @@ pub const AnthropicClient = struct {
         }
 
         // Add current prompt
-        try messages.append(try std.json.parseFromSliceLeaky(
+        try messages.append(self.allocator, try std.json.parseFromSliceLeaky(
             std.json.Value,
             self.allocator,
             try std.fmt.allocPrint(self.allocator,
