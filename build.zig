@@ -9,18 +9,15 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/lib.zig"),
     });
 
-    // Build tests
-    const lib_tests = b.addTest(.{
-        .target = target,
-        .optimize = optimize,
-    });
-    lib_tests.root_module.addAnonymousImport("root", .{
+    // Build tests (using the Zig 0.16.0 API)
+    const lib_unit_tests = b.addTest(.{});
+    lib_unit_tests.root_module.addAnonymousImport("root", .{
         .root_source_file = b.path("src/lib.zig"),
     });
 
-    const run_lib_tests = b.addRunArtifact(lib_tests);
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_tests.step);
+    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+    const test_step = b.step("test", "Run library tests");
+    test_step.dependOn(&run_lib_unit_tests.step);
 
     // Build examples
     const examples = [_]struct {
