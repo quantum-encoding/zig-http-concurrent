@@ -170,9 +170,13 @@ pub const CLI = struct {
                     std.debug.print("  3. gemini\n", .{});
                     std.debug.print("  4. grok\n", .{});
                     std.debug.print("  5. vertex\n", .{});
-                    std.debug.print("\nEnter provider name: ", .{});
+                    try stdout_writer.interface.writeAll("\nEnter provider name: ");
+                    try stdout_writer.interface.flush();
 
-                    const provider_input = (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) orelse continue;
+                    const provider_input = stdin_reader.interface.takeDelimiter('\n') catch |err| switch (err) {
+                        error.EndOfStream => continue,
+                        else => return err,
+                    } orelse continue;
                     const provider_trimmed = std.mem.trim(u8, provider_input, &std.ascii.whitespace);
 
                     if (Provider.fromString(provider_trimmed)) |new_provider| {
