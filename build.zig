@@ -11,10 +11,11 @@ pub fn build(b: *std.Build) void {
 
     // Build tests
     const lib_tests = b.addTest(.{
-        .name = "lib-tests",
-        .root_source_file = b.path("src/lib.zig"),
         .target = target,
         .optimize = optimize,
+    });
+    lib_tests.root_module.addAnonymousImport("root", .{
+        .root_source_file = b.path("src/lib.zig"),
     });
 
     const run_lib_tests = b.addRunArtifact(lib_tests);
