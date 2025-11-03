@@ -215,10 +215,9 @@ pub const ConversationContext = struct {
 
     pub fn init(allocator: std.mem.Allocator) !ConversationContext {
         const id = try generateId(allocator);
-        const MessageList = std.ArrayList(AIMessage);
         return ConversationContext{
             .id = id,
-            .messages = MessageList.init(allocator),
+            .messages = std.ArrayList(AIMessage){},
             .allocator = allocator,
         };
     }
@@ -228,11 +227,11 @@ pub const ConversationContext = struct {
         for (self.messages.items) |*msg| {
             msg.deinit();
         }
-        self.messages.deinit();
+        self.messages.deinit(self.allocator);
     }
 
     pub fn addMessage(self: *ConversationContext, message: AIMessage) !void {
-        try self.messages.append(message);
+        try self.messages.append(self.allocator, message);
     }
 
     pub fn getLastMessage(self: *ConversationContext) ?*AIMessage {
