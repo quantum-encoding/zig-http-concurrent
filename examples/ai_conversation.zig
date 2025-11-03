@@ -75,7 +75,7 @@ fn runConversationWithDeepSeek(allocator: std.mem.Allocator) !void {
     std.debug.print("👤 User: What makes it different from Rust?\n\n", .{});
 
     // Create user message for context
-    var user_msg = AIMessage{
+    const user_msg = AIMessage{
         .id = try http_sentinel.ai.common.generateId(allocator),
         .role = .user,
         .content = try allocator.dupe(u8, "What makes it different from Rust?"),
