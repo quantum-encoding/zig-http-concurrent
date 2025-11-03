@@ -56,7 +56,7 @@ pub const ResponseManager = struct {
             response,
         );
 
-        try self.responses.append(stored);
+        try self.responses.append(self.allocator, stored);
 
         // Update conversation data
         const gop = try self.conversations.getOrPut(conversation_id);
