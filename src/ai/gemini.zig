@@ -146,7 +146,7 @@ pub const GeminiClient = struct {
                     if (text_content.items.len > 0) {
                         try text_content.appendSlice(self.allocator, "\n");
                     }
-                    try text_content.appendSlice(text.string);
+                    try text_content.appendSlice(self.allocator, text.string);
                 }
             }
 
