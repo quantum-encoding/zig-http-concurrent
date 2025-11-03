@@ -144,7 +144,7 @@ pub const BatchExecutor = struct {
             if (attempts > 0) {
                 // Exponential backoff
                 const delay_ms = @as(u64, 1000) * (@as(u64, 1) << @intCast(attempts - 1));
-                std.time.sleep(delay_ms * std.time.ns_per_ms);
+                std.Thread.sleep(delay_ms * std.time.ns_per_ms);
             }
 
             // Execute the request
