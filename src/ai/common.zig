@@ -266,25 +266,25 @@ pub fn escapeJsonString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
 
     for (input) |char| {
         switch (char) {
-            '"' => try result.appendSlice("\\\""),
-            '\\' => try result.appendSlice("\\\\"),
-            '\n' => try result.appendSlice("\\n"),
-            '\r' => try result.appendSlice("\\r"),
-            '\t' => try result.appendSlice("\\t"),
-            '\x08' => try result.appendSlice("\\b"),
-            '\x0C' => try result.appendSlice("\\f"),
+            '"' => try result.appendSlice(allocator, "\\\""),
+            '\\' => try result.appendSlice(allocator, "\\\\"),
+            '\n' => try result.appendSlice(allocator, "\\n"),
+            '\r' => try result.appendSlice(allocator, "\\r"),
+            '\t' => try result.appendSlice(allocator, "\\t"),
+            '\x08' => try result.appendSlice(allocator, "\\b"),
+            '\x0C' => try result.appendSlice(allocator, "\\f"),
             else => {
                 if (char < 0x20) {
                     // Control character - escape as \uXXXX
-                    try result.writer().print("\\u{x:0>4}", .{char});
+                    try result.writer(allocator).print("\\u{x:0>4}", .{char});
                 } else {
-                    try result.append(char);
+                    try result.append(allocator, char);
                 }
             },
         }
     }
 
-    return result.toOwnedSlice();
+    return result.toOwnedSlice(allocator);
 }
 
 /// Utility: Build Authorization header value
