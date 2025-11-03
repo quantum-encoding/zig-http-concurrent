@@ -193,7 +193,7 @@ pub const Pricing = struct {
     pub const GROK_INPUT = 5.0;
     pub const GROK_OUTPUT = 15.0;
 
-    /// Vertex AI uses same Gemini pricing but with enterprise support
+    // Note: Vertex AI uses same Gemini pricing but with enterprise support
 };
 
 test "AIClient initialization" {
