@@ -25,10 +25,19 @@ pub fn parseFile(allocator: std.mem.Allocator, file_path: []const u8) ![]types.B
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
 
-    const content = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
+    // Get file size
+    const stat = try file.stat();
+    const max_size = 10 * 1024 * 1024; // 10MB max
+    const size = @min(stat.size, max_size);
+
+    // Allocate buffer and read
+    const content = try allocator.alloc(u8, size);
     defer allocator.free(content);
 
-    return try parseContent(allocator, content);
+    const bytes_read = try file.readAll(content);
+    const actual_content = content[0..bytes_read];
+
+    return try parseContent(allocator, actual_content);
 }
 
 /// Parse CSV content string
