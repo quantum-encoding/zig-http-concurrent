@@ -59,8 +59,8 @@ pub const GeminiClient = struct {
         const start_time = std.time.milliTimestamp();
 
         // Build contents array (Gemini format)
-        var contents = std.ArrayList(u8).init(self.allocator);
-        defer contents.deinit();
+        var contents = std.ArrayList(u8){};
+        defer contents.deinit(self.allocator);
 
         try contents.appendSlice("[");
 
@@ -134,13 +134,13 @@ pub const GeminiClient = struct {
             }
 
             // Extract text response
-            var text_content = std.ArrayList(u8).init(self.allocator);
-            defer text_content.deinit();
+            var text_content = std.ArrayList(u8){};
+            defer text_content.deinit(self.allocator);
 
             for (parts.array.items) |part| {
                 if (part.object.get("text")) |text| {
                     if (text_content.items.len > 0) {
-                        try text_content.appendSlice("\n");
+                        try text_content.appendSlice(self.allocator, "\n");
                     }
                     try text_content.appendSlice(text.string);
                 }
@@ -156,7 +156,7 @@ pub const GeminiClient = struct {
                 .message = .{
                     .id = try common.generateId(self.allocator),
                     .role = .assistant,
-                    .content = try text_content.toOwnedSlice(),
+                    .content = try text_content.toOwnedSlice(self.allocator),
                     .timestamp = end_time,
                     .allocator = self.allocator,
                 },
@@ -182,8 +182,8 @@ pub const GeminiClient = struct {
         contents: []const u8,
         config: common.RequestConfig,
     ) ![]u8 {
-        var payload = std.ArrayList(u8).init(self.allocator);
-        defer payload.deinit();
+        var payload = std.ArrayList(u8){};
+        defer payload.deinit(self.allocator);
 
         try payload.appendSlice("{");
         try payload.writer().print("\"contents\":{s},", .{contents});
@@ -204,7 +204,7 @@ pub const GeminiClient = struct {
 
         try payload.appendSlice("}");
 
-        return payload.toOwnedSlice();
+        return payload.toOwnedSlice(self.allocator);
     }
 
     fn makeRequest(self: *GeminiClient, model: []const u8, payload: []const u8) ![]u8 {

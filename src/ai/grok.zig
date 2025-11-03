@@ -58,8 +58,8 @@ pub const GrokClient = struct {
         const start_time = std.time.milliTimestamp();
 
         // Build messages array (OpenAI format)
-        var messages = std.ArrayList(u8).init(self.allocator);
-        defer messages.deinit();
+        var messages = std.ArrayList(u8){};
+        defer messages.deinit(self.allocator);
 
         try messages.appendSlice("[");
 
