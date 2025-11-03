@@ -25,6 +25,14 @@ pub fn main() !void {
     var show_list = false;
     var show_help = false;
 
+    // Batch mode options
+    var batch_mode = false;
+    var batch_input: ?[]const u8 = null;
+    var batch_output: ?[]const u8 = null;
+    var batch_concurrency: u32 = 50;
+    var batch_full_responses = false;
+    var batch_retry: u32 = 2;
+
     var i: usize = 1; // Skip program name
     while (i < args.len) : (i += 1) {
         const arg = args[i];
