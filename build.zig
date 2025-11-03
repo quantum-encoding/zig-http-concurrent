@@ -77,10 +77,8 @@ pub fn build(b: *std.Build) void {
     // CLI Tool
     const cli = addExample(b, "zig-ai", "src/main.zig", target, optimize, http_sentinel_module);
 
-    // Install CLI to system
-    const install_cli = b.addInstallArtifact(cli, .{});
-    const install_step = b.step("install", "Install zig-ai CLI to system");
-    install_step.dependOn(&install_cli.step);
+    // Install CLI to system (built-in 'install' step will handle this automatically)
+    b.installArtifact(cli);
 
     // Run CLI
     const run_cli = b.addRunArtifact(cli);
