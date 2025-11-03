@@ -85,7 +85,7 @@ pub const BatchExecutor = struct {
                     failed,
                 });
 
-                std.time.sleep(100 * std.time.ns_per_ms);
+                std.Thread.sleep(100 * std.time.ns_per_ms);
             }
             std.debug.print("\r[INFO] Processed {}/{} requests (✅ {} ❌ {})...Done!\n\n", .{
                 self.requests.len,
