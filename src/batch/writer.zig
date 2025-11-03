@@ -64,10 +64,11 @@ fn writeFullResponses(
     // Write each response to a separate file
     for (results) |*result| {
         if (result.response) |response| {
+            const provider_name = @tagName(result.provider);
             const filename = try std.fmt.allocPrint(
                 allocator,
                 "{s}/{d}_{s}.txt",
-                .{ dir_name, result.id, @tagName(result.provider) },
+                .{ dir_name, result.id, provider_name },
             );
             defer allocator.free(filename);
 
