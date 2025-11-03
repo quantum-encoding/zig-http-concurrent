@@ -276,7 +276,9 @@ pub fn escapeJsonString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
             else => {
                 if (char < 0x20) {
                     // Control character - escape as \uXXXX
-                    try result.writer().print("\\u{x:0>4}", .{char});
+                    const hex_str = try std.fmt.allocPrint(allocator, "\\u{x:0>4}", .{char});
+                    defer allocator.free(hex_str);
+                    try result.appendSlice(allocator, hex_str);
                 } else {
                     try result.append(allocator, char);
                 }
