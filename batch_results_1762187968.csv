@@ -1,0 +1,5 @@
+id,provider,prompt,response,input_tokens,output_tokens,cost,execution_time_ms,error
+1,claude,"What is 2+2?","2+2 = 4",14,11,0.207000,1550,""
+2,deepseek,"What is the capital of Japan?","The capital of Japan is **Tokyo**.",11,8,0.000004,2430,""
+3,gemini,"Name one color","Blue",0,26,0.007800,1308,""
+4,grok,"Say hello","",0,0,0.000000,5779,"error.RateLimitExceeded"
