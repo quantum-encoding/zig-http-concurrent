@@ -358,23 +358,23 @@ zig-ai --no-usage --no-cost deepseek "What is Zig?" 2>/dev/null
 
 ## Provider Comparison
 
-| Provider | Model | Speed | Quality | Cost/1M Tokens (Input/Output) | Best For |
-|----------|-------|-------|---------|-------------------------------|----------|
+| Provider | Model | Speed | Quality | Cost per 1M Tokens (Input/Output) | Best For |
+|----------|-------|-------|---------|-----------------------------------|----------|
 | DeepSeek | deepseek-chat | ⚡⚡⚡ | ⭐⭐⭐⭐ | $0.28 / $0.42 | **Most use cases** (ultra-affordable) |
-| Claude | claude-3-7-sonnet | ⚡⚡ | ⭐⭐⭐⭐⭐ | $3.00 / $15.00 | Complex reasoning, coding |
+| Claude | claude-sonnet-4-5-20250929 | ⚡⚡ | ⭐⭐⭐⭐⭐ | $3.00 / $15.00 | Complex reasoning, coding |
 | Gemini | gemini-2.5-flash | ⚡⚡⚡ | ⭐⭐⭐⭐ | $0.30 / $2.50 | Fast responses, good balance |
-| Grok | grok-2-latest | ⚡⚡ | ⭐⭐⭐⭐ | $0.20 / $0.50 | Code-focused, X.AI integration |
+| Grok | grok-4-fast-non-reasoning | ⚡⚡ | ⭐⭐⭐⭐ | $0.20 / $0.50 | Code-focused, X.AI integration |
 | Vertex | gemini-2.5-pro | ⚡⚡ | ⭐⭐⭐⭐⭐ | $2.50 / $15.00 | Enterprise, OAuth2 auth |
 
-**Cost Examples** (1K tokens):
-- DeepSeek: $0.00028 input + $0.00042 output = **$0.0007** (cheapest!)
-- Grok: $0.0002 input + $0.0005 output = **$0.0007** (tied for cheapest!)
-- Gemini Flash: $0.0003 input + $0.0025 output = **$0.0028**
-- Claude: $0.003 input + $0.015 output = **$0.018**
+**Cost Examples** (per 1K tokens):
+- DeepSeek: ($0.28/1000) input + ($0.42/1000) output = **$0.0007** (cheapest!)
+- Grok: ($0.20/1000) input + ($0.50/1000) output = **$0.0007** (tied for cheapest!)
+- Gemini Flash: ($0.30/1000) input + ($2.50/1000) output = **$0.0028**
+- Claude: ($3.00/1000) input + ($15.00/1000) output = **$0.018**
 
 **Recommendation**: Start with **DeepSeek** or **Grok** for cost-effectiveness, use **Claude** or **Vertex** for complex tasks.
 
-*Note: Costs are automatically calculated from `model_costs.csv` and reflect actual provider pricing.*
+*Note: All costs are automatically calculated from `model_costs.csv` using actual provider pricing.*
 
 ## Troubleshooting
 
