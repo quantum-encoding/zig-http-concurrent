@@ -39,24 +39,14 @@ pub const HttpClient = struct {
 
         if (std.mem.eql(u8, encoding, "gzip")) {
             // Decompress gzip response
-            const stream = std.Io.fixedBufferStream(body_data);
-            var decompressor = try std.compress.flate.Decompress.gzipStream(self.allocator, stream);
-            defer decompressor.deinit();
+            var in: std.Io.Reader = .fixed(body_data);
+            var aw: std.Io.Writer.Allocating = .init(self.allocator);
+            defer aw.deinit();
 
-            var decompressed = std.ArrayList(u8){};
-            defer decompressed.deinit(self.allocator);
+            var decompress: std.compress.flate.Decompress = .init(&in, .gzip, &.{});
+            _ = try decompress.reader.streamRemaining(&aw.writer);
 
-            var buffer: [4096]u8 = undefined;
-            while (true) {
-                const n = decompressor.reader().read(&buffer) catch |err| switch (err) {
-                    error.EndOfStream => break,
-                    else => return err,
-                };
-                if (n == 0) break;
-                try decompressed.appendSlice(self.allocator, buffer[0..n]);
-            }
-
-            return try decompressed.toOwnedSlice(self.allocator);
+            return try self.allocator.dupe(u8, aw.written());
         }
 
         // No compression or unsupported encoding
