@@ -358,15 +358,23 @@ zig-ai --no-usage --no-cost deepseek "What is Zig?" 2>/dev/null
 
 ## Provider Comparison
 
-| Provider | Speed | Quality | Cost/1K Tokens | Best For |
-|----------|-------|---------|----------------|----------|
-| DeepSeek | ⚡⚡⚡ | ⭐⭐⭐⭐ | $0.00014 (in) / $0.00028 (out) | **Most use cases** |
-| Claude | ⚡⚡ | ⭐⭐⭐⭐⭐ | $3.00 (in) / $15.00 (out) | Complex reasoning |
-| Gemini | ⚡⚡⚡ | ⭐⭐⭐⭐ | $0.075 (in) / $0.30 (out) | Fast responses |
-| Grok | ⚡⚡ | ⭐⭐⭐⭐ | $2.00 (in) / $10.00 (out) | Code-focused |
-| Vertex | ⚡⚡ | ⭐⭐⭐⭐ | $1.25 (in) / $5.00 (out) | Enterprise |
+| Provider | Model | Speed | Quality | Cost/1M Tokens (Input/Output) | Best For |
+|----------|-------|-------|---------|-------------------------------|----------|
+| DeepSeek | deepseek-chat | ⚡⚡⚡ | ⭐⭐⭐⭐ | $0.28 / $0.42 | **Most use cases** (ultra-affordable) |
+| Claude | claude-3-7-sonnet | ⚡⚡ | ⭐⭐⭐⭐⭐ | $3.00 / $15.00 | Complex reasoning, coding |
+| Gemini | gemini-2.5-flash | ⚡⚡⚡ | ⭐⭐⭐⭐ | $0.30 / $2.50 | Fast responses, good balance |
+| Grok | grok-2-latest | ⚡⚡ | ⭐⭐⭐⭐ | $0.20 / $0.50 | Code-focused, X.AI integration |
+| Vertex | gemini-2.5-pro | ⚡⚡ | ⭐⭐⭐⭐⭐ | $2.50 / $15.00 | Enterprise, OAuth2 auth |
 
-**Recommendation**: Start with **DeepSeek** for cost-effectiveness, use **Claude** for complex tasks.
+**Cost Examples** (1K tokens):
+- DeepSeek: $0.00028 input + $0.00042 output = **$0.0007** (cheapest!)
+- Grok: $0.0002 input + $0.0005 output = **$0.0007** (tied for cheapest!)
+- Gemini Flash: $0.0003 input + $0.0025 output = **$0.0028**
+- Claude: $0.003 input + $0.015 output = **$0.018**
+
+**Recommendation**: Start with **DeepSeek** or **Grok** for cost-effectiveness, use **Claude** or **Vertex** for complex tasks.
+
+*Note: Costs are automatically calculated from `model_costs.csv` and reflect actual provider pricing.*
 
 ## Troubleshooting
 
