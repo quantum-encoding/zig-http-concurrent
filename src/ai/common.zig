@@ -255,8 +255,7 @@ pub fn generateId(allocator: std.mem.Allocator) ![]u8 {
     std.crypto.random.bytes(&uuid_bytes);
 
     // Format as hex string
-    var id = try allocator.alloc(u8, 32);
-    _ = std.fmt.bufPrint(id, "{s}", .{std.fmt.fmtSliceHexLower(&uuid_bytes)}) catch unreachable;
+    const id = try std.fmt.allocPrint(allocator, "{x:0>32}", .{std.mem.readInt(u128, &uuid_bytes, .big)});
     return id;
 }
 
