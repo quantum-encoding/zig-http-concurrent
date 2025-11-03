@@ -84,11 +84,12 @@ pub const BatchResult = struct {
         const escaped_error = try escapeCsvField(allocator, error_str);
         defer allocator.free(escaped_error);
 
+        const provider_name = @tagName(self.provider);
         return try std.fmt.allocPrint(allocator,
-            "{},{},\"{s}\",\"{s}\",{},{},{d:.6},{},\"{s}\"\n",
+            "{},{s},\"{s}\",\"{s}\",{},{},{d:.6},{},\"{s}\"\n",
             .{
                 self.id,
-                @tagName(self.provider),
+                provider_name,
                 escaped_prompt,
                 escaped_response,
                 self.input_tokens,
