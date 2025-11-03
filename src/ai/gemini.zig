@@ -190,21 +190,28 @@ pub const GeminiClient = struct {
         defer payload.deinit(self.allocator);
 
         try payload.appendSlice(self.allocator, "{");
-        try payload.writer().print("\"contents\":{s},", .{contents});
+
+        const contents_part = try std.fmt.allocPrint(self.allocator, "\"contents\":{s},", .{contents});
+        defer self.allocator.free(contents_part);
+        try payload.appendSlice(self.allocator, contents_part);
 
         // System instruction
         if (config.system_prompt) |system| {
             const escaped = try common.escapeJsonString(self.allocator, system);
             defer self.allocator.free(escaped);
-            try payload.writer().print(
+            const sys_part = try std.fmt.allocPrint(self.allocator,
                 \\"systemInstruction":{{"parts":[{{"text":"{s}"}}]}},
             , .{escaped});
+            defer self.allocator.free(sys_part);
+            try payload.appendSlice(self.allocator, sys_part);
         }
 
         // Generation config
-        try payload.writer().print(
+        const gen_config = try std.fmt.allocPrint(self.allocator,
             \\"generationConfig":{{"temperature":{d},"maxOutputTokens":{},"topP":{d}}}
         , .{ config.temperature, config.max_tokens, config.top_p });
+        defer self.allocator.free(gen_config);
+        try payload.appendSlice(self.allocator, gen_config);
 
         try payload.appendSlice(self.allocator, "}");
 
