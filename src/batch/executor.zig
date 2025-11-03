@@ -170,6 +170,7 @@ pub const BatchExecutor = struct {
                 result.input_tokens = ai_response.usage.input_tokens;
                 result.output_tokens = ai_response.usage.output_tokens;
                 result.cost = request.provider.calculateCost(
+                    req_config.model,
                     ai_response.usage.input_tokens,
                     ai_response.usage.output_tokens,
                 );
