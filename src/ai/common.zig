@@ -215,9 +215,10 @@ pub const ConversationContext = struct {
 
     pub fn init(allocator: std.mem.Allocator) !ConversationContext {
         const id = try generateId(allocator);
+        const MessageList = std.ArrayList(AIMessage);
         return ConversationContext{
             .id = id,
-            .messages = std.ArrayList(AIMessage).init(allocator),
+            .messages = MessageList.init(allocator),
             .allocator = allocator,
         };
     }
