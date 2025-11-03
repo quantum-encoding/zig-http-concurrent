@@ -208,7 +208,6 @@ pub const GrokClient = struct {
         const headers = [_]std.http.Header{
             .{ .name = "Content-Type", .value = "application/json" },
             .{ .name = "Authorization", .value = auth_header },
-            .{ .name = "Accept-Encoding", .value = "identity" }, // Disable compression
         };
 
         var response = try self.http_client.post(endpoint, &headers, payload);
