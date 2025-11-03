@@ -133,7 +133,7 @@ pub const BatchExecutor = struct {
             result.prompt = self.allocator.dupe(u8, "[error copying prompt]") catch unreachable;
             result.error_message = std.fmt.allocPrint(
                 self.allocator,
-                "Failed to allocate prompt: {}",
+                "Failed to allocate prompt: {any}",
                 .{err},
             ) catch null;
             self.storeResult(result);
