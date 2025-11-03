@@ -28,12 +28,15 @@ pub fn build(b: *std.Build) void {
         .{ .name = "ai-conversation", .src = "examples/ai_conversation.zig", .desc = "Run AI conversation example" },
     };
 
+    const target_actual = b.standardTargetOptions(.{});
+    const optimize_actual = b.standardOptimizeOption(.{});
+
     inline for (examples) |example| {
         const exe = b.addExecutable(.{
             .name = example.name,
             .root_source_file = b.path(example.src),
-            .target = target,
-            .optimize = optimize,
+            .target = target_actual,
+            .optimize = optimize_actual,
         });
 
         exe.root_module.addImport("http-sentinel", http_sentinel);
