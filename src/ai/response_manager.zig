@@ -20,7 +20,7 @@ pub const ResponseManager = struct {
     pub fn init(allocator: std.mem.Allocator) ResponseManager {
         return .{
             .allocator = allocator,
-            .responses = std.ArrayList(StoredResponse).init(allocator),
+            .responses = std.ArrayList(StoredResponse){},
             .conversations = std.StringHashMap(ConversationData).init(allocator),
         };
     }
