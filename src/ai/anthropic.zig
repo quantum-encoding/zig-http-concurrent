@@ -265,7 +265,6 @@ pub const AnthropicClient = struct {
             .{ .name = "x-api-key", .value = self.api_key },
             .{ .name = "anthropic-version", .value = DEFAULT_ANTHROPIC_VERSION },
             .{ .name = "User-Agent", .value = "zig-http-sentinel/1.0" },
-            .{ .name = "Accept-Encoding", .value = "identity" }, // Disable compression
         };
 
         var response = try self.http_client.post(endpoint, &headers, payload);
