@@ -105,23 +105,23 @@ pub const VertexClient = struct {
         var contents = std.ArrayList(u8){};
         defer contents.deinit(self.allocator);
 
-        try contents.appendSlice("[");
+        try contents.appendSlice(self.allocator, "[");
 
         // Context messages
         for (context, 0..) |msg, i| {
-            if (i > 0) try contents.appendSlice(",");
+            if (i > 0) try contents.appendSlice(self.allocator, ",");
             try self.appendMessage(&contents, msg);
         }
 
         // Current prompt
-        if (context.len > 0) try contents.appendSlice(",");
+        if (context.len > 0) try contents.appendSlice(self.allocator, ",");
         const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
         defer self.allocator.free(escaped_prompt);
         try contents.writer().print(
             \\{{"role":"user","parts":[{{"text":"{s}"}}]}}
         , .{escaped_prompt});
 
-        try contents.appendSlice("]");
+        try contents.appendSlice(self.allocator, "]");
 
         var turn_count: u32 = 0;
         var total_tokens: u32 = 0;
@@ -230,7 +230,7 @@ pub const VertexClient = struct {
         var payload = std.ArrayList(u8){};
         defer payload.deinit(self.allocator);
 
-        try payload.appendSlice("{");
+        try payload.appendSlice(self.allocator, "{");
         try payload.writer().print("\"contents\":{s},", .{contents});
 
         // System instruction
@@ -247,7 +247,7 @@ pub const VertexClient = struct {
             \\"generationConfig":{{"temperature":{d},"maxOutputTokens":{},"topP":{d}}}
         , .{ config.temperature, config.max_tokens, config.top_p });
 
-        try payload.appendSlice("}");
+        try payload.appendSlice(self.allocator, "}");
 
         return payload.toOwnedSlice(self.allocator);
     }

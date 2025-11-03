@@ -62,11 +62,11 @@ pub const GeminiClient = struct {
         var contents = std.ArrayList(u8){};
         defer contents.deinit(self.allocator);
 
-        try contents.appendSlice("[");
+        try contents.appendSlice(self.allocator, "[");
 
         // Add context messages
         for (context, 0..) |msg, i| {
-            if (i > 0) try contents.appendSlice(",");
+            if (i > 0) try contents.appendSlice(self.allocator, ",");
             try self.appendMessage(&contents, msg);
         }
 
@@ -189,7 +189,7 @@ pub const GeminiClient = struct {
         var payload = std.ArrayList(u8){};
         defer payload.deinit(self.allocator);
 
-        try payload.appendSlice("{");
+        try payload.appendSlice(self.allocator, "{");
         try payload.writer().print("\"contents\":{s},", .{contents});
 
         // System instruction
@@ -206,7 +206,7 @@ pub const GeminiClient = struct {
             \\"generationConfig":{{"temperature":{d},"maxOutputTokens":{},"topP":{d}}}
         , .{ config.temperature, config.max_tokens, config.top_p });
 
-        try payload.appendSlice("}");
+        try payload.appendSlice(self.allocator, "}");
 
         return payload.toOwnedSlice(self.allocator);
     }

@@ -61,7 +61,7 @@ pub const GrokClient = struct {
         var messages = std.ArrayList(u8){};
         defer messages.deinit(self.allocator);
 
-        try messages.appendSlice("[");
+        try messages.appendSlice(self.allocator, "[");
 
         // System message
         if (config.system_prompt) |system| {
@@ -74,19 +74,19 @@ pub const GrokClient = struct {
 
         // Context messages
         for (context) |msg| {
-            if (messages.items.len > 1) try messages.appendSlice(",");
+            if (messages.items.len > 1) try messages.appendSlice(self.allocator, ",");
             try self.appendMessage(&messages, msg);
         }
 
         // Current prompt
-        if (messages.items.len > 1) try messages.appendSlice(",");
+        if (messages.items.len > 1) try messages.appendSlice(self.allocator, ",");
         const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
         defer self.allocator.free(escaped_prompt);
         try messages.writer().print(
             \\{{"role":"user","content":"{s}"}}
         , .{escaped_prompt});
 
-        try messages.appendSlice("]");
+        try messages.appendSlice(self.allocator, "]");
 
         var turn_count: u32 = 0;
         var total_input_tokens: u32 = 0;
