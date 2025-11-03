@@ -71,10 +71,10 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 export DEEPSEEK_API_KEY="sk-..."
 
 # Gemini (Google)
-export GEMINI_API_KEY="..."
+export GOOGLE_GENAI_API_KEY="..."
 
 # Grok (X.AI)
-export GROK_API_KEY="xai-..."
+export XAI_API_KEY="xai-..."
 
 # Vertex AI (Google Cloud) - requires gcloud auth
 export VERTEX_PROJECT_ID="your-project-id"
