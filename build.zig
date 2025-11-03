@@ -138,4 +138,30 @@ pub fn build(b: *std.Build) void {
     const run_integration_example = b.addRunArtifact(integration_example);
     const integration_demo_step = b.step("integration-demo", "Run pool & retry integration demonstration");
     integration_demo_step.dependOn(&run_integration_example.step);
+
+    // AI Providers Demo
+    const ai_demo = b.addExecutable(.{
+        .name = "ai_providers_demo",
+        .root_source_file = b.path("examples/ai_providers_demo.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    ai_demo.root_module.addImport("http-sentinel", http_sentinel_module);
+
+    const run_ai_demo = b.addRunArtifact(ai_demo);
+    const ai_demo_step = b.step("ai-providers-demo", "Run AI providers demonstration");
+    ai_demo_step.dependOn(&run_ai_demo.step);
+
+    // AI Conversation Example
+    const ai_conversation = b.addExecutable(.{
+        .name = "ai_conversation",
+        .root_source_file = b.path("examples/ai_conversation.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    ai_conversation.root_module.addImport("http-sentinel", http_sentinel_module);
+
+    const run_ai_conversation = b.addRunArtifact(ai_conversation);
+    const ai_conversation_step = b.step("ai-conversation-demo", "Run AI conversation demonstration");
+    ai_conversation_step.dependOn(&run_ai_conversation.step);
 }
