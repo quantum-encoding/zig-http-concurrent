@@ -226,10 +226,20 @@ pub const AnthropicClient = struct {
         for (messages, 0..) |msg, i| {
             if (i > 0) try payload.appendSlice(self.allocator, ",");
 
-            // Serialize message
-            const msg_json = try std.json.stringifyAlloc(self.allocator, msg, .{});
-            defer self.allocator.free(msg_json);
-            try payload.appendSlice(self.allocator, msg_json);
+            // Serialize message using a temporary buffer
+            var msg_buf = std.ArrayList(u8){};
+            defer msg_buf.deinit(self.allocator);
+
+            var msg_writer = std.Io.Writer.Allocating.init(self.allocator);
+            defer msg_writer.deinit();
+
+            var stringify: std.json.Stringify = .{
+                .writer = &msg_writer.writer,
+                .options = .{},
+            };
+            try stringify.write(msg);
+
+            try payload.appendSlice(self.allocator, msg_writer.written());
         }
         try payload.appendSlice(self.allocator, "]");
 
