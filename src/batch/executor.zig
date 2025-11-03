@@ -234,7 +234,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = @import("../ai/anthropic.zig").ClaudeClient.init(
+                var client = ClaudeClient.init(
                     self.allocator,
                     api_key,
                 );
