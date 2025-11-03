@@ -210,7 +210,6 @@ pub const BatchExecutor = struct {
         self: *BatchExecutor,
         request: *const types.BatchRequest,
     ) !ai_common.AIResponse {
-        _ = self;
 
         // Build request config
         const req_config = ai_common.RequestConfig{
