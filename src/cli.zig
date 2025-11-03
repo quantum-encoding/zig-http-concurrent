@@ -71,8 +71,8 @@ pub const Provider = enum {
         return switch (self) {
             .claude => "ANTHROPIC_API_KEY",
             .deepseek => "DEEPSEEK_API_KEY",
-            .gemini => "GEMINI_API_KEY",
-            .grok => "GROK_API_KEY",
+            .gemini => "GOOGLE_GENAI_API_KEY",
+            .grok => "XAI_API_KEY",
             .vertex => "VERTEX_PROJECT_ID",
         };
     }
