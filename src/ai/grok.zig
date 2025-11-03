@@ -67,9 +67,11 @@ pub const GrokClient = struct {
         if (config.system_prompt) |system| {
             const escaped = try common.escapeJsonString(self.allocator, system);
             defer self.allocator.free(escaped);
-            try messages.writer().print(
+            const sys_msg = try std.fmt.allocPrint(self.allocator,
                 \\{{"role":"system","content":"{s}"}}
             , .{escaped});
+            defer self.allocator.free(sys_msg);
+            try messages.appendSlice(self.allocator, sys_msg);
         }
 
         // Context messages
@@ -82,9 +84,11 @@ pub const GrokClient = struct {
         if (messages.items.len > 1) try messages.appendSlice(self.allocator, ",");
         const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
         defer self.allocator.free(escaped_prompt);
-        try messages.writer().print(
+        const prompt_msg = try std.fmt.allocPrint(self.allocator,
             \\{{"role":"user","content":"{s}"}}
         , .{escaped_prompt});
+        defer self.allocator.free(prompt_msg);
+        try messages.appendSlice(self.allocator, prompt_msg);
 
         try messages.appendSlice(self.allocator, "]");
 
