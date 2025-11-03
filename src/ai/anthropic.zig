@@ -75,12 +75,16 @@ pub const AnthropicClient = struct {
         }
 
         // Add current prompt
+        const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
+        defer self.allocator.free(escaped_prompt);
+        const prompt_json = try std.fmt.allocPrint(self.allocator,
+            \\{{"role":"user","content":"{s}"}}
+        , .{escaped_prompt});
+        defer self.allocator.free(prompt_json);
         try messages.append(self.allocator, try std.json.parseFromSliceLeaky(
             std.json.Value,
             self.allocator,
-            try std.fmt.allocPrint(self.allocator,
-                \\{{"role":"user","content":"{s}"}}
-            , .{try common.escapeJsonString(self.allocator, prompt)}),
+            prompt_json,
             .{},
         ));
 
