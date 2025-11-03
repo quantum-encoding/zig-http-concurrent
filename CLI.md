@@ -87,6 +87,8 @@ gcloud auth application-default login
 ```bash
 # Add to ~/.bashrc
 export DEEPSEEK_API_KEY="your-key-here"
+export GOOGLE_GENAI_API_KEY="your-key-here"
+export XAI_API_KEY="your-key-here"
 ```
 
 ### Security Best Practices
