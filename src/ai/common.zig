@@ -261,8 +261,8 @@ pub fn generateId(allocator: std.mem.Allocator) ![]u8 {
 
 /// Utility: Escape JSON string
 pub fn escapeJsonString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
-    defer result.deinit();
+    var result = std.ArrayList(u8){};
+    defer result.deinit(allocator);
 
     for (input) |char| {
         switch (char) {
