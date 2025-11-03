@@ -20,7 +20,7 @@ pub fn writeResults(
     defer file.close();
 
     var buffer: [4096]u8 = undefined;
-    const writer = file.writer(&buffer);
+    var writer = file.writer(&buffer);
 
     // Write CSV header
     try writer.interface.writeAll("id,provider,prompt,response,input_tokens,output_tokens,cost,execution_time_ms,error\n");
