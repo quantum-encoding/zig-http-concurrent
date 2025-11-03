@@ -10,6 +10,11 @@ const std = @import("std");
 const types = @import("types.zig");
 const cli = @import("../cli.zig");
 const ai_common = @import("../ai/common.zig");
+const ClaudeClient = @import("../ai/anthropic.zig").ClaudeClient;
+const DeepSeekClient = @import("../ai/deepseek.zig").DeepSeekClient;
+const GeminiClient = @import("../ai/gemini.zig").GeminiClient;
+const GrokClient = @import("../ai/grok.zig").GrokClient;
+const VertexClient = @import("../ai/vertex.zig").VertexClient;
 
 /// Thread-safe batch executor using fixed-size thread pool
 pub const BatchExecutor = struct {
