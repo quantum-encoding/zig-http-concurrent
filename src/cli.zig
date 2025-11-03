@@ -313,7 +313,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const api_key = try std.process.getEnvVarOwned(self.allocator, "GEMINI_API_KEY");
+        const api_key = try std.process.getEnvVarOwned(self.allocator, "GOOGLE_GENAI_API_KEY");
         defer self.allocator.free(api_key);
 
         var client = ai.GeminiClient.init(self.allocator, api_key);
