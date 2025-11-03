@@ -69,21 +69,18 @@ fi
 echo ""
 
 # Test 5: Missing prompt error
-echo "Test 5: Missing prompt detection (requires API key)"
-# Note: This will fail with MissingApiKey if API key is not set,
-# or MissingPrompt if no provider is specified
-output=$(zig build cli -- 2>&1)
-if echo "$output" | grep -q "Error:"; then
-    echo "✅ PASS: Error handling works"
+echo "Test 5: Missing prompt detection"
+if timeout 5 bash -c "zig build cli -- 2>&1" | grep -q "No prompt provided"; then
+    echo "✅ PASS: Missing prompt error displayed"
 else
-    echo "❌ FAIL: Expected error for missing arguments"
+    echo "❌ FAIL: Expected missing prompt error"
     exit 1
 fi
 echo ""
 
-# Test 6: Build succeeds
-echo "Test 6: Binary builds successfully"
-if zig build -Doptimize=ReleaseSafe 2>&1 | grep -q "Build Summary"; then
+# Test 6: Compilation check
+echo "Test 6: Project compiles without errors"
+if zig build -Doptimize=ReleaseSafe >/dev/null 2>&1; then
     echo "✅ PASS: Project builds successfully"
 else
     echo "❌ FAIL: Build failed"
