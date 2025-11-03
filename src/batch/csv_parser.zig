@@ -112,7 +112,7 @@ fn parseRow(
     headers: []const []const u8,
     id: u32,
 ) !types.BatchRequest {
-    var fields = try parseFields(allocator, line);
+    const fields = try parseFields(allocator, line);
     defer {
         for (fields) |field| allocator.free(field);
         allocator.free(fields);
