@@ -71,12 +71,16 @@ pub const GeminiClient = struct {
         }
 
         // Add current prompt
-        if (context.len > 0) try contents.appendSlice(",");
-        try contents.writer().print(
+        if (context.len > 0) try contents.appendSlice(self.allocator, ",");
+        const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
+        defer self.allocator.free(escaped_prompt);
+        const prompt_json = try std.fmt.allocPrint(self.allocator,
             \\{{"role":"user","parts":[{{"text":"{s}"}}]}}
-        , .{try common.escapeJsonString(self.allocator, prompt)});
+        , .{escaped_prompt});
+        defer self.allocator.free(prompt_json);
+        try contents.appendSlice(self.allocator, prompt_json);
 
-        try contents.appendSlice("]");
+        try contents.appendSlice(self.allocator, "]");
 
         var turn_count: u32 = 0;
         var total_tokens: u32 = 0;
