@@ -166,7 +166,11 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Write response to output (thread-safe)
         fn writeResponse(self: *Self, response: *manifest.ResponseManifest) void {
-            std.debug.print("DEBUG: writeResponse called for ID: {s}\n", .{response.id});
+            std.debug.print("DEBUG: writeResponse called for ID: {s}, status: {}, body_len: {}\n", .{
+                response.id,
+                response.status,
+                if (response.body) |b| b.len else 0,
+            });
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
@@ -175,6 +179,11 @@ pub fn Engine(comptime WriterType: type) type {
                 std.debug.print("Error writing response: {}\n", .{err});
             };
             std.debug.print("DEBUG: toJson complete\n", .{});
+
+            // Try to flush immediately
+            std.Io.Writer.flush(&self.output_writer.interface) catch |err| {
+                std.debug.print("DEBUG: Flush error: {}\n", .{err});
+            };
         }
 
         /// Write error to output (thread-safe)
