@@ -114,10 +114,11 @@ fn readJsonLines(
     reader: anytype,
     requests: *std.ArrayList(manifest.RequestManifest),
 ) !void {
-    var line_buf: [8192]u8 = undefined;
     var line_num: usize = 0;
 
-    while (try reader.readUntilDelimiterOrEof(&line_buf, '\n')) |line| {
+    while (reader.interface.takeDelimiter('\n') catch |err| switch (err) {
+        error.ReadFailed, error.StreamTooLong => return err,
+    } orelse break) |line| {
         line_num += 1;
 
         const trimmed = std.mem.trim(u8, line, &std.ascii.whitespace);
