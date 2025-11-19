@@ -96,7 +96,7 @@ pub const Engine = struct {
         while (retry_count <= max_retries) : (retry_count += 1) {
             const result = self.executeHttpRequest(request);
 
-            if (result) |http_response| {
+            if (result) |*http_response| {
                 defer http_response.deinit();
 
                 response.status = @intFromEnum(http_response.status);
