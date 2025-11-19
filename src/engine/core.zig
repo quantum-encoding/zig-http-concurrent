@@ -105,8 +105,8 @@ pub const Engine = struct {
                 break;
             } else |err| {
                 if (retry_count < max_retries) {
-                    // Calculate backoff
-                    const backoff_ms = self.retry_engine.calculateBackoff(retry_count);
+                    // Calculate exponential backoff
+                    const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
                     std.Thread.sleep(backoff_ms * std.time.ns_per_ms);
                     continue;
                 } else {
