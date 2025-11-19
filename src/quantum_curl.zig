@@ -80,7 +80,7 @@ pub fn main() !void {
     var engine = try Engine.init(
         allocator,
         .{ .max_concurrency = max_concurrency },
-        stdout_writer.interface.any(),
+        &stdout_writer.interface,
     );
     defer engine.deinit();
 
