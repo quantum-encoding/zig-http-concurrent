@@ -97,7 +97,7 @@ pub fn Engine(comptime WriterType: type) type {
             var retry_count: u32 = 0;
 
             while (retry_count <= max_retries) : (retry_count += 1) {
-                var result = self.executeHttpRequest(request);
+                var result = self.executeHttpRequest(&http_client, request);
 
                 if (result) |*http_response| {
                     defer http_response.deinit();
