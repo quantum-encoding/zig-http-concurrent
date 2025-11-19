@@ -133,7 +133,7 @@ fn readJsonLines(
 }
 
 fn printUsage() void {
-    std.debug.print(
+    const usage =
         \\Quantum Curl - Universal HTTP Engine
         \\
         \\USAGE:
@@ -141,9 +141,9 @@ fn printUsage() void {
         \\
         \\OPTIONS:
         \\    -h, --help              Show this help message
-        \\    -f, --file <path>       Read requests from file (JSON Lines format)
+        \\    -f, --file [path]       Read requests from file (JSON Lines format)
         \\                            If not specified, reads from stdin
-        \\    -c, --concurrency <n>   Maximum concurrent requests (default: 50)
+        \\    -c, --concurrency [n]   Maximum concurrent requests (default: 50)
         \\
         \\INPUT FORMAT (JSON Lines):
         \\    {"id": "1", "method": "GET", "url": "https://example.com"}
@@ -163,5 +163,6 @@ fn printUsage() void {
         \\    # Process with custom concurrency
         \\    quantum-curl --file requests.jsonl --concurrency 100
         \\
-    , .{});
+    ;
+    std.debug.print("{s}", .{usage});
 }
