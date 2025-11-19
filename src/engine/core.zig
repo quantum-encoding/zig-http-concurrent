@@ -138,33 +138,33 @@ pub fn Engine(comptime WriterType: type) type {
             var headers = std.ArrayList(std.http.Header){};
             defer headers.deinit(self.allocator);
 
-        if (request.headers) |*req_headers| {
-            var it = req_headers.map.iterator();
-            while (it.next()) |entry| {
-                try headers.append(self.allocator, .{
-                    .name = entry.key_ptr.*,
-                    .value = entry.value_ptr.*,
-                });
-            }
-        }
-
-        // Execute based on method
-        return switch (request.method) {
-            .GET => try self.http_client.get(request.url, headers.items),
-            .POST, .PUT, .PATCH => blk: {
-                const body = request.body orelse "";
-                if (request.method == .POST) {
-                    break :blk try self.http_client.post(request.url, headers.items, body);
-                } else if (request.method == .PUT) {
-                    break :blk try self.http_client.put(request.url, headers.items, body);
-                } else {
-                    break :blk try self.http_client.patch(request.url, headers.items, body);
+            if (request.headers) |*req_headers| {
+                var it = req_headers.map.iterator();
+                while (it.next()) |entry| {
+                    try headers.append(self.allocator, .{
+                        .name = entry.key_ptr.*,
+                        .value = entry.value_ptr.*,
+                    });
                 }
-            },
-            .DELETE => try self.http_client.delete(request.url, headers.items),
-            .HEAD, .OPTIONS => error.MethodNotSupported,
-        };
-    }
+            }
+
+            // Execute based on method
+            return switch (request.method) {
+                .GET => try self.http_client.get(request.url, headers.items),
+                .POST, .PUT, .PATCH => blk: {
+                    const body = request.body orelse "";
+                    if (request.method == .POST) {
+                        break :blk try self.http_client.post(request.url, headers.items, body);
+                    } else if (request.method == .PUT) {
+                        break :blk try self.http_client.put(request.url, headers.items, body);
+                    } else {
+                        break :blk try self.http_client.patch(request.url, headers.items, body);
+                    }
+                },
+                .DELETE => try self.http_client.delete(request.url, headers.items),
+                .HEAD, .OPTIONS => error.MethodNotSupported,
+            };
+        }
 
         /// Write response to output (thread-safe)
         fn writeResponse(self: *Self, response: *manifest.ResponseManifest) void {
