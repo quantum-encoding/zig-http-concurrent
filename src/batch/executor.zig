@@ -83,7 +83,7 @@ pub const BatchExecutor = struct {
                 const failed = self.failed.load(.acquire);
                 const total = completed + failed;
 
-                std.debug.print("\r[INFO] Processed {}/{} requests (✅ {} ❌ {})...", .{
+                std.debug.print("\r[INFO] Processed {}/{} requests ({} ❌ {})...", .{
                     total,
                     self.requests.len,
                     completed,
@@ -92,7 +92,7 @@ pub const BatchExecutor = struct {
 
                 std.Thread.sleep(100 * std.time.ns_per_ms);
             }
-            std.debug.print("\r[INFO] Processed {}/{} requests (✅ {} ❌ {})...Done!\n\n", .{
+            std.debug.print("\r[INFO] Processed {}/{} requests ({} ❌ {})...Done!\n\n", .{
                 self.requests.len,
                 self.requests.len,
                 self.completed.load(.acquire),

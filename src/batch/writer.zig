@@ -34,7 +34,7 @@ pub fn writeResults(
         try writer.interface.flush();
     }
 
-    std.debug.print("✅ Results written to: {s}\n", .{output_path});
+    std.debug.print("Results written to: {s}\n", .{output_path});
 
     // Write full responses if requested
     if (full_responses) {
@@ -79,7 +79,7 @@ fn writeFullResponses(
         }
     }
 
-    std.debug.print("✅ Full responses written to: {s}/\n", .{dir_name});
+    std.debug.print("Full responses written to: {s}/\n", .{dir_name});
 }
 
 /// Generate default output filename with timestamp
