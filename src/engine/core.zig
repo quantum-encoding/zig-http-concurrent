@@ -59,7 +59,6 @@ pub const Engine = struct {
     pub fn deinit(self: *Engine) void {
         self.thread_pool.deinit();
         self.http_client.deinit();
-        self.retry_engine.deinit();
     }
 
     /// Process a batch of request manifests
