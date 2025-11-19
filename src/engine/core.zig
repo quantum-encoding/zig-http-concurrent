@@ -32,9 +32,6 @@ pub fn Engine(comptime WriterType: type) type {
         http_client: HttpClient,
         retry_engine: RetryEngine,
 
-        /// Thread pool for concurrent execution
-        thread_pool: std.Thread.Pool,
-
         /// Output writer for streaming results
         output_writer: WriterType,
 
@@ -42,25 +39,17 @@ pub fn Engine(comptime WriterType: type) type {
         output_mutex: std.Thread.Mutex,
 
         pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: WriterType) !Self {
-            var thread_pool: std.Thread.Pool = undefined;
-            try thread_pool.init(.{
-                .allocator = allocator,
-                .n_jobs = config.max_concurrency,
-            });
-
             return Self{
                 .allocator = allocator,
                 .config = config,
                 .http_client = HttpClient.init(allocator),
                 .retry_engine = RetryEngine.init(allocator, .{}),
-                .thread_pool = thread_pool,
                 .output_writer = output_writer,
                 .output_mutex = .{},
             };
         }
 
         pub fn deinit(self: *Self) void {
-            self.thread_pool.deinit();
             self.http_client.deinit();
         }
 
