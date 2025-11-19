@@ -104,7 +104,7 @@ pub const BatchExecutor = struct {
         const duration_s = @as(f64, @floatFromInt(end_time - start_time)) / 1000.0;
 
         if (self.config.show_progress) {
-            std.debug.print("✨ Batch complete!\n", .{});
+            std.debug.print("Batch complete!\n", .{});
             std.debug.print("   Total time: {d:.2}s\n", .{duration_s});
             std.debug.print("   Success: {}\n", .{self.completed.load(.acquire)});
             std.debug.print("   Failed: {}\n\n", .{self.failed.load(.acquire)});
