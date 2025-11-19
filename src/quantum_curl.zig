@@ -73,11 +73,14 @@ pub fn main() !void {
         return error.NoRequests;
     }
 
+    std.debug.print("DEBUG: Parsed {} requests\n", .{requests.items.len});
+
     // Initialize engine
     const stdout = std.fs.File.stdout();
     var stdout_buffer: [8192]u8 = undefined;
     var writer = stdout.writer(&stdout_buffer);
 
+    std.debug.print("DEBUG: Initializing engine\n", .{});
     const EngineType = Engine(@TypeOf(writer));
     var engine = try EngineType.init(
         allocator,
@@ -86,11 +89,15 @@ pub fn main() !void {
     );
     defer engine.deinit();
 
+    std.debug.print("DEBUG: Processing batch\n", .{});
     // Process requests
     try engine.processBatch(requests.items);
 
+    std.debug.print("DEBUG: Flushing output\n", .{});
     // Flush any remaining buffered output
     try std.Io.Writer.flush(&writer.interface);
+
+    std.debug.print("DEBUG: Done\n", .{});
 }
 
 fn readRequestsFromFile(
