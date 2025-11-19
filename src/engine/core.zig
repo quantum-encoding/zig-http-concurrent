@@ -55,21 +55,16 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a batch of request manifests
         pub fn processBatch(self: *Self, requests: []manifest.RequestManifest) !void {
-            std.debug.print("DEBUG: processBatch called with {} requests\n", .{requests.len});
 
             // TEMPORARY: Run sequentially to debug thread pool issues
             for (requests) |*request| {
-                std.debug.print("DEBUG: Processing request ID: {s}\n", .{request.id});
                 self.processRequest(request);
-                std.debug.print("DEBUG: Request complete\n", .{});
             }
 
-            std.debug.print("DEBUG: All requests complete\n", .{});
         }
 
         /// Process a single request (called by thread pool)
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
-            std.debug.print("DEBUG: processRequest started for ID: {s}\n", .{request.id});
             const start_time = std.time.milliTimestamp();
 
             var response = manifest.ResponseManifest{
@@ -84,27 +79,22 @@ pub fn Engine(comptime WriterType: type) type {
                 self.writeError(request.id, "Memory allocation failed");
                 return;
             };
-            std.debug.print("DEBUG: About to execute HTTP request for ID: {s}\n", .{request.id});
 
             // Execute request with retry
             const max_retries = request.max_retries orelse self.config.default_max_retries;
             var retry_count: u32 = 0;
 
             while (retry_count <= max_retries) : (retry_count += 1) {
-                std.debug.print("DEBUG: Calling executeHttpRequest (attempt {})\n", .{retry_count});
                 var result = self.executeHttpRequest(request);
-                std.debug.print("DEBUG: executeHttpRequest returned\n", .{});
 
                 if (result) |*http_response| {
                     defer http_response.deinit();
 
-                    std.debug.print("DEBUG: Got HTTP response with status: {}\n", .{http_response.status});
                     response.status = @intFromEnum(http_response.status);
                     response.body = self.allocator.dupe(u8, http_response.body) catch null;
                     response.retry_count = retry_count;
                     break;
                 } else |err| {
-                    std.debug.print("DEBUG: HTTP request failed with error: {}\n", .{err});
                     if (retry_count < max_retries) {
                         // Calculate exponential backoff
                         const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
@@ -166,7 +156,6 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Write response to output (thread-safe)
         fn writeResponse(self: *Self, response: *manifest.ResponseManifest) void {
-            std.debug.print("DEBUG: writeResponse called for ID: {s}, status: {}, body_len: {}\n", .{
                 response.id,
                 response.status,
                 if (response.body) |b| b.len else 0,
@@ -174,15 +163,12 @@ pub fn Engine(comptime WriterType: type) type {
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
-            std.debug.print("DEBUG: Calling toJson\n", .{});
             response.toJson(&self.output_writer.interface) catch |err| {
                 std.debug.print("Error writing response: {}\n", .{err});
             };
-            std.debug.print("DEBUG: toJson complete\n", .{});
 
             // Try to flush immediately
             std.Io.Writer.flush(&self.output_writer.interface) catch |err| {
-                std.debug.print("DEBUG: Flush error: {}\n", .{err});
             };
         }
 
