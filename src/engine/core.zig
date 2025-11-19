@@ -67,17 +67,15 @@ pub fn Engine(comptime WriterType: type) type {
         /// Process a batch of request manifests
         pub fn processBatch(self: *Self, requests: []manifest.RequestManifest) !void {
             std.debug.print("DEBUG: processBatch called with {} requests\n", .{requests.len});
-            var wg = std.Thread.WaitGroup{};
 
+            // TEMPORARY: Run sequentially to debug thread pool issues
             for (requests) |*request| {
-                std.debug.print("DEBUG: Spawning task for request ID: {s}\n", .{request.id});
-                self.thread_pool.spawnWg(&wg, processRequest, .{ self, request });
-                std.debug.print("DEBUG: Task spawned\n", .{});
+                std.debug.print("DEBUG: Processing request ID: {s}\n", .{request.id});
+                self.processRequest(request);
+                std.debug.print("DEBUG: Request complete\n", .{});
             }
 
-            std.debug.print("DEBUG: All tasks spawned, waiting...\n", .{});
-            wg.wait();
-            std.debug.print("DEBUG: Wait complete\n", .{});
+            std.debug.print("DEBUG: All requests complete\n", .{});
         }
 
         /// Process a single request (called by thread pool)
