@@ -68,10 +68,20 @@ pub const AnthropicClient = struct {
         var messages = std.ArrayList(std.json.Value).init(self.allocator);
         defer messages.deinit();
 
+        // Track parsed JSON objects for cleanup
+        var parsed_objects = std.ArrayList(std.json.Parsed(std.json.Value)).init(self.allocator);
+        defer {
+            for (parsed_objects.items) |*parsed| {
+                parsed.deinit();
+            }
+            parsed_objects.deinit();
+        }
+
         // Add context messages
         for (context) |msg| {
-            const msg_value = try self.buildMessageJson(msg);
-            try messages.append(self.allocator, msg_value);
+            var parsed = try self.buildMessageJson(msg);
+            try parsed_objects.append(self.allocator, parsed);
+            try messages.append(self.allocator, parsed.value);
         }
 
         // Add current prompt
@@ -81,12 +91,14 @@ pub const AnthropicClient = struct {
             \\{{"role":"user","content":"{s}"}}
         , .{escaped_prompt});
         defer self.allocator.free(prompt_json);
-        try messages.append(self.allocator, try std.json.parseFromSliceLeaky(
+        var prompt_parsed = try std.json.parseFromSlice(
             std.json.Value,
             self.allocator,
             prompt_json,
             .{},
-        ));
+        );
+        try parsed_objects.append(self.allocator, prompt_parsed);
+        try messages.append(self.allocator, prompt_parsed.value);
 
         var turn_count: u32 = 0;
         var total_input_tokens: u32 = 0;
