@@ -166,12 +166,15 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Write response to output (thread-safe)
         fn writeResponse(self: *Self, response: *manifest.ResponseManifest) void {
+            std.debug.print("DEBUG: writeResponse called for ID: {s}\n", .{response.id});
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
+            std.debug.print("DEBUG: Calling toJson\n", .{});
             response.toJson(&self.output_writer.interface) catch |err| {
                 std.debug.print("Error writing response: {}\n", .{err});
             };
+            std.debug.print("DEBUG: toJson complete\n", .{});
         }
 
         /// Write error to output (thread-safe)
