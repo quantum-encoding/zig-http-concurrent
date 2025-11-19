@@ -87,4 +87,15 @@ pub fn build(b: *std.Build) void {
     }
     const cli_step = b.step("cli", "Run AI Providers CLI");
     cli_step.dependOn(&run_cli.step);
+
+    // Quantum Curl - Universal HTTP Engine
+    const quantum_curl = addExample(b, "quantum-curl", "src/quantum_curl.zig", target, optimize, http_sentinel_module);
+    b.installArtifact(quantum_curl);
+
+    const run_quantum = b.addRunArtifact(quantum_curl);
+    if (b.args) |args| {
+        run_quantum.addArgs(args);
+    }
+    const quantum_step = b.step("quantum", "Run Quantum Curl HTTP Engine");
+    quantum_step.dependOn(&run_quantum.step);
 }
