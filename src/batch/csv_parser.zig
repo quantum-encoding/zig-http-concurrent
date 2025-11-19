@@ -72,7 +72,7 @@ pub fn parseContent(allocator: std.mem.Allocator, content: []const u8) ![]types.
     }
 
     if (requests.items.len == 0) {
-        std.debug.print("❌ Error: No valid requests found in CSV\n", .{});
+        std.debug.print("Error: No valid requests found in CSV\n", .{});
         return error.NoValidRequests;
     }
 
@@ -101,7 +101,7 @@ fn parseHeader(allocator: std.mem.Allocator, header_line: []const u8) ![][]const
     }
 
     if (!has_provider or !has_prompt) {
-        std.debug.print("❌ Error: CSV must have 'provider' and 'prompt' columns\n", .{});
+        std.debug.print("Error: CSV must have 'provider' and 'prompt' columns\n", .{});
         return ParseError.InvalidHeader;
     }
 
@@ -150,7 +150,7 @@ fn parseRow(
 
         if (std.mem.eql(u8, header, "provider")) {
             request.provider = cli.Provider.fromString(value) orelse {
-                std.debug.print("❌ Invalid provider: {s}\n", .{value});
+                std.debug.print("Invalid provider: {s}\n", .{value});
                 return ParseError.InvalidProvider;
             };
             has_provider = true;
@@ -161,14 +161,14 @@ fn parseRow(
         } else if (std.mem.eql(u8, header, "temperature")) {
             if (value.len > 0) {
                 request.temperature = std.fmt.parseFloat(f32, value) catch |err| {
-                    std.debug.print("❌ Invalid temperature: {s}\n", .{value});
+                    std.debug.print("Invalid temperature: {s}\n", .{value});
                     return err;
                 };
             }
         } else if (std.mem.eql(u8, header, "max_tokens")) {
             if (value.len > 0) {
                 request.max_tokens = std.fmt.parseInt(u32, value, 10) catch |err| {
-                    std.debug.print("❌ Invalid max_tokens: {s}\n", .{value});
+                    std.debug.print("Invalid max_tokens: {s}\n", .{value});
                     return err;
                 };
             }

@@ -46,21 +46,21 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--temperature") or std.mem.eql(u8, arg, "-t")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --temperature requires a value\n", .{});
+                std.debug.print("Error: --temperature requires a value\n", .{});
                 return error.MissingArgument;
             }
             config.temperature = try std.fmt.parseFloat(f32, args[i]);
         } else if (std.mem.eql(u8, arg, "--max-tokens") or std.mem.eql(u8, arg, "-m")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --max-tokens requires a value\n", .{});
+                std.debug.print("Error: --max-tokens requires a value\n", .{});
                 return error.MissingArgument;
             }
             config.max_tokens = try std.fmt.parseInt(u32, args[i], 10);
         } else if (std.mem.eql(u8, arg, "--system") or std.mem.eql(u8, arg, "-s")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --system requires a value\n", .{});
+                std.debug.print("Error: --system requires a value\n", .{});
                 return error.MissingArgument;
             }
             config.system_prompt = args[i];
@@ -71,7 +71,7 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--batch") or std.mem.eql(u8, arg, "-b")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --batch requires a file path\n", .{});
+                std.debug.print("Error: --batch requires a file path\n", .{});
                 return error.MissingArgument;
             }
             batch_mode = true;
@@ -79,19 +79,19 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --output requires a file path\n", .{});
+                std.debug.print("Error: --output requires a file path\n", .{});
                 return error.MissingArgument;
             }
             batch_output = args[i];
         } else if (std.mem.eql(u8, arg, "--concurrency")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --concurrency requires a value\n", .{});
+                std.debug.print("Error: --concurrency requires a value\n", .{});
                 return error.MissingArgument;
             }
             batch_concurrency = try std.fmt.parseInt(u32, args[i], 10);
             if (batch_concurrency == 0 or batch_concurrency > 200) {
-                std.debug.print("❌ Error: --concurrency must be between 1 and 200\n", .{});
+                std.debug.print("Error: --concurrency must be between 1 and 200\n", .{});
                 return error.InvalidArgument;
             }
         } else if (std.mem.eql(u8, arg, "--full-responses")) {
@@ -99,12 +99,12 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--retry")) {
             i += 1;
             if (i >= args.len) {
-                std.debug.print("❌ Error: --retry requires a value\n", .{});
+                std.debug.print("Error: --retry requires a value\n", .{});
                 return error.MissingArgument;
             }
             batch_retry = try std.fmt.parseInt(u32, args[i], 10);
         } else if (std.mem.startsWith(u8, arg, "--")) {
-            std.debug.print("❌ Error: Unknown option: {s}\n", .{arg});
+            std.debug.print("Error: Unknown option: {s}\n", .{arg});
             cli.printUsage();
             return error.UnknownOption;
         } else {
@@ -121,7 +121,7 @@ pub fn main() !void {
             if (prompt == null) {
                 prompt = arg;
             } else {
-                std.debug.print("❌ Error: Multiple prompts provided. Use quotes for multi-word prompts.\n", .{});
+                std.debug.print("Error: Multiple prompts provided. Use quotes for multi-word prompts.\n", .{});
                 return error.MultiplePrompts;
             }
         }
@@ -141,14 +141,14 @@ pub fn main() !void {
     // Handle batch mode
     if (batch_mode) {
         const input_file = batch_input orelse {
-            std.debug.print("❌ Error: --batch requires an input CSV file\n", .{});
+            std.debug.print("Error: --batch requires an input CSV file\n", .{});
             return error.MissingBatchInput;
         };
 
         // Parse CSV file
         std.debug.print("📄 Parsing CSV file: {s}\n", .{input_file});
         const requests = batch.parseFile(allocator, input_file) catch |err| {
-            std.debug.print("❌ Error parsing CSV: {}\n", .{err});
+            std.debug.print("Error parsing CSV: {}\n", .{err});
             return err;
         };
         defer {
@@ -189,7 +189,7 @@ pub fn main() !void {
     const env_var = config.provider.getEnvVar();
     const has_key = std.process.hasEnvVar(allocator, env_var) catch false;
     if (!has_key) {
-        std.debug.print("❌ Error: {s} environment variable not set\n", .{env_var});
+        std.debug.print("Error: {s} environment variable not set\n", .{env_var});
         std.debug.print("\n   Set it with:\n", .{});
         std.debug.print("   export {s}=your_api_key_here\n\n", .{env_var});
         return error.MissingApiKey;
@@ -204,7 +204,7 @@ pub fn main() !void {
         if (prompt) |p| {
             try tool.query(p);
         } else {
-            std.debug.print("❌ Error: No prompt provided\n\n", .{});
+            std.debug.print("Error: No prompt provided\n\n", .{});
             cli.printUsage();
             return error.MissingPrompt;
         }
