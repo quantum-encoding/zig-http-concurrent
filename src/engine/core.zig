@@ -90,18 +90,6 @@ pub const Engine = struct {
             return;
         };
 
-        // Check circuit breaker
-        if (self.circuit_breaker) |*cb| {
-            if (cb.isOpen()) {
-                response.error_message = self.allocator.dupe(u8, "Circuit breaker open") catch return;
-                const end_time = std.time.milliTimestamp();
-                response.latency_ms = @intCast(end_time - start_time);
-                self.writeResponse(&response);
-                response.deinit();
-                return;
-            }
-        }
-
         // Execute request with retry
         const max_retries = request.max_retries orelse self.config.default_max_retries;
         var retry_count: u32 = 0;
