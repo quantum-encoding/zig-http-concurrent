@@ -65,12 +65,13 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a batch of request manifests
         pub fn processBatch(self: *Self, requests: []manifest.RequestManifest) !void {
+            var wg = std.Thread.WaitGroup{};
 
-            // TEMPORARY: Run sequentially to debug thread pool issues
             for (requests) |*request| {
-                self.processRequest(request);
+                self.thread_pool.spawnWg(&wg, processRequest, .{ self, request });
             }
 
+            wg.wait();
         }
 
         /// Process a single request (called by thread pool)
