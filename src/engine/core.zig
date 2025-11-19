@@ -32,13 +32,13 @@ pub const Engine = struct {
     /// Thread pool for concurrent execution
     thread_pool: std.Thread.Pool,
 
-    /// Output writer for streaming results
-    output_writer: std.io.AnyWriter,
+    /// Output writer for streaming results (anytype for flexibility)
+    output_writer: anytype,
 
     /// Mutex for synchronized output
     output_mutex: std.Thread.Mutex,
 
-    pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: std.io.AnyWriter) !Engine {
+    pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: anytype) !Engine {
         var thread_pool: std.Thread.Pool = undefined;
         try thread_pool.init(.{
             .allocator = allocator,
