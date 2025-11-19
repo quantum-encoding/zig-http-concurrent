@@ -166,8 +166,8 @@ pub fn Engine(comptime WriterType: type) type {
         };
     }
 
-    /// Write response to output (thread-safe)
-    fn writeResponse(self: *Engine, response: *manifest.ResponseManifest) void {
+        /// Write response to output (thread-safe)
+        fn writeResponse(self: *Self, response: *manifest.ResponseManifest) void {
         self.output_mutex.lock();
         defer self.output_mutex.unlock();
 
