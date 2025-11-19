@@ -150,18 +150,18 @@ pub fn Engine(comptime WriterType: type) type {
 
             // Execute based on method
             return switch (request.method) {
-                .GET => try self.http_client.get(request.url, headers.items),
+                .GET => try http_client.get(request.url, headers.items),
                 .POST, .PUT, .PATCH => blk: {
                     const body = request.body orelse "";
                     if (request.method == .POST) {
-                        break :blk try self.http_client.post(request.url, headers.items, body);
+                        break :blk try http_client.post(request.url, headers.items, body);
                     } else if (request.method == .PUT) {
-                        break :blk try self.http_client.put(request.url, headers.items, body);
+                        break :blk try http_client.put(request.url, headers.items, body);
                     } else {
-                        break :blk try self.http_client.patch(request.url, headers.items, body);
+                        break :blk try http_client.patch(request.url, headers.items, body);
                     }
                 },
-                .DELETE => try self.http_client.delete(request.url, headers.items),
+                .DELETE => try http_client.delete(request.url, headers.items),
                 .HEAD, .OPTIONS => error.MethodNotSupported,
             };
         }
