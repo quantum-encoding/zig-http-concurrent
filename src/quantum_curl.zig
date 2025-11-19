@@ -74,18 +74,22 @@ pub fn main() !void {
     }
 
     // Initialize engine
-    const stdout_file = std.fs.File.stdout();
-    var stdout_buffer: [256]u8 = undefined;
-    var stdout_writer = stdout_file.writer(&stdout_buffer);
+    const stdout = std.io.getStdOut();
+    var buffered = std.io.bufferedWriter(stdout.writer());
+    const writer = buffered.writer();
+
     var engine = try Engine.init(
         allocator,
         .{ .max_concurrency = max_concurrency },
-        &stdout_writer.interface,
+        writer,
     );
     defer engine.deinit();
 
     // Process requests
     try engine.processBatch(requests.items);
+
+    // Flush output
+    try buffered.flush();
 }
 
 fn readRequestsFromFile(
