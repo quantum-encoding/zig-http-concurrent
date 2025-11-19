@@ -95,8 +95,8 @@ fn readRequestsFromFile(
     defer file.close();
 
     var file_buffer: [4096]u8 = undefined;
-    const reader = file.reader(&file_buffer);
-    try readJsonLines(allocator, reader, requests);
+    var reader = file.reader(&file_buffer);
+    try readJsonLines(allocator, &reader, requests);
 }
 
 fn readRequestsFromStdin(
@@ -105,8 +105,8 @@ fn readRequestsFromStdin(
 ) !void {
     var stdin_buffer: [4096]u8 = undefined;
     const stdin_file = std.io.getStdIn();
-    const stdin = stdin_file.reader(&stdin_buffer);
-    try readJsonLines(allocator, stdin, requests);
+    var stdin = stdin_file.reader(&stdin_buffer);
+    try readJsonLines(allocator, &stdin, requests);
 }
 
 fn readJsonLines(
