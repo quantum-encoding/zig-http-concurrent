@@ -28,7 +28,6 @@ pub const Engine = struct {
     config: EngineConfig,
     http_client: HttpClient,
     retry_engine: RetryEngine,
-    circuit_breaker: ?CircuitBreaker,
 
     /// Thread pool for concurrent execution
     thread_pool: std.Thread.Pool,
@@ -46,17 +45,11 @@ pub const Engine = struct {
             .n_jobs = config.max_concurrency,
         });
 
-        const circuit_breaker = if (config.enable_circuit_breaker)
-            CircuitBreaker.init(config.circuit_breaker_threshold, config.circuit_breaker_timeout_ms)
-        else
-            null;
-
         return Engine{
             .allocator = allocator,
             .config = config,
             .http_client = HttpClient.init(allocator),
             .retry_engine = RetryEngine.init(allocator),
-            .circuit_breaker = circuit_breaker,
             .thread_pool = thread_pool,
             .output_writer = output_writer,
             .output_mutex = .{},
