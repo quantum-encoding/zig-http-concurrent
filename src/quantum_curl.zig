@@ -96,8 +96,11 @@ fn readRequestsFromFile(
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
 
-    const content = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // 10MB max
+    const file_size = (try file.stat()).size;
+    const content = try allocator.alloc(u8, file_size);
     defer allocator.free(content);
+
+    _ = try file.readAll(content);
 
     try parseJsonLines(allocator, content, requests);
 }
@@ -107,10 +110,19 @@ fn readRequestsFromStdin(
     requests: *std.ArrayList(manifest.RequestManifest),
 ) !void {
     const stdin = std.fs.File.stdin();
-    const content = try stdin.readToEndAlloc(allocator, 10 * 1024 * 1024); // 10MB max
-    defer allocator.free(content);
 
-    try parseJsonLines(allocator, content, requests);
+    // Read stdin in chunks
+    var content = std.ArrayList(u8){};
+    defer content.deinit(allocator);
+
+    var buf: [4096]u8 = undefined;
+    while (true) {
+        const n = try stdin.read(&buf);
+        if (n == 0) break;
+        try content.appendSlice(allocator, buf[0..n]);
+    }
+
+    try parseJsonLines(allocator, content.items, requests);
 }
 
 fn parseJsonLines(
