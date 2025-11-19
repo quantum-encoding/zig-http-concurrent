@@ -181,7 +181,8 @@ pub fn Engine(comptime WriterType: type) type {
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
-            self.output_writer.print(
+            std.fmt.format(
+                self.output_writer.interface,
                 "{{\"id\":\"{s}\",\"status\":0,\"error\":\"{s}\"}}\n",
                 .{ id, error_message },
             ) catch {};
