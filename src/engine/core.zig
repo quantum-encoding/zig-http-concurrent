@@ -77,59 +77,59 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a single request (called by thread pool)
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
-        const start_time = std.time.milliTimestamp();
+            const start_time = std.time.milliTimestamp();
 
-        var response = manifest.ResponseManifest{
-            .id = undefined,
-            .status = 0,
-            .latency_ms = 0,
-            .allocator = self.allocator,
-        };
+            var response = manifest.ResponseManifest{
+                .id = undefined,
+                .status = 0,
+                .latency_ms = 0,
+                .allocator = self.allocator,
+            };
 
-        // Duplicate ID for response
-        response.id = self.allocator.dupe(u8, request.id) catch {
-            self.writeError(request.id, "Memory allocation failed");
-            return;
-        };
+            // Duplicate ID for response
+            response.id = self.allocator.dupe(u8, request.id) catch {
+                self.writeError(request.id, "Memory allocation failed");
+                return;
+            };
 
-        // Execute request with retry
-        const max_retries = request.max_retries orelse self.config.default_max_retries;
-        var retry_count: u32 = 0;
+            // Execute request with retry
+            const max_retries = request.max_retries orelse self.config.default_max_retries;
+            var retry_count: u32 = 0;
 
-        while (retry_count <= max_retries) : (retry_count += 1) {
-            var result = self.executeHttpRequest(request);
+            while (retry_count <= max_retries) : (retry_count += 1) {
+                var result = self.executeHttpRequest(request);
 
-            if (result) |*http_response| {
-                defer http_response.deinit();
+                if (result) |*http_response| {
+                    defer http_response.deinit();
 
-                response.status = @intFromEnum(http_response.status);
-                response.body = self.allocator.dupe(u8, http_response.body) catch null;
-                response.retry_count = retry_count;
-                break;
-            } else |err| {
-                if (retry_count < max_retries) {
-                    // Calculate exponential backoff
-                    const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
-                    std.Thread.sleep(backoff_ms * std.time.ns_per_ms);
-                    continue;
-                } else {
-                    // Final failure
-                    response.error_message = std.fmt.allocPrint(
-                        self.allocator,
-                        "{}",
-                        .{err},
-                    ) catch null;
+                    response.status = @intFromEnum(http_response.status);
+                    response.body = self.allocator.dupe(u8, http_response.body) catch null;
                     response.retry_count = retry_count;
                     break;
+                } else |err| {
+                    if (retry_count < max_retries) {
+                        // Calculate exponential backoff
+                        const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
+                        std.Thread.sleep(backoff_ms * std.time.ns_per_ms);
+                        continue;
+                    } else {
+                        // Final failure
+                        response.error_message = std.fmt.allocPrint(
+                            self.allocator,
+                            "{}",
+                            .{err},
+                        ) catch null;
+                        response.retry_count = retry_count;
+                        break;
+                    }
                 }
             }
-        }
 
-        const end_time = std.time.milliTimestamp();
-        response.latency_ms = @intCast(end_time - start_time);
+            const end_time = std.time.milliTimestamp();
+            response.latency_ms = @intCast(end_time - start_time);
 
-        self.writeResponse(&response);
-        response.deinit();
+            self.writeResponse(&response);
+            response.deinit();
         }
 
         /// Execute HTTP request
