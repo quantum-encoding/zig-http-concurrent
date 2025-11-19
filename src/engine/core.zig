@@ -171,7 +171,7 @@ pub fn Engine(comptime WriterType: type) type {
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
-            response.toJson(self.output_writer.interface) catch |err| {
+            response.toJson(&self.output_writer.interface) catch |err| {
                 std.debug.print("Error writing response: {}\n", .{err});
             };
         }
@@ -181,8 +181,8 @@ pub fn Engine(comptime WriterType: type) type {
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
-            std.fmt.format(
-                self.output_writer.interface,
+            std.Io.Writer.print(
+                &self.output_writer.interface,
                 "{{\"id\":\"{s}\",\"status\":0,\"error\":\"{s}\"}}\n",
                 .{ id, error_message },
             ) catch {};
