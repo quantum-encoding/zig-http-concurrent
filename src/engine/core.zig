@@ -75,6 +75,10 @@ pub fn Engine(comptime WriterType: type) type {
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
             const start_time = std.time.milliTimestamp();
 
+            // Create thread-local HTTP client
+            var http_client = HttpClient.init(self.allocator);
+            defer http_client.deinit();
+
             var response = manifest.ResponseManifest{
                 .id = undefined,
                 .status = 0,
