@@ -178,12 +178,13 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Write error to output (thread-safe)
         fn writeError(self: *Self, id: []const u8, error_message: []const u8) void {
-        self.output_mutex.lock();
-        defer self.output_mutex.unlock();
+            self.output_mutex.lock();
+            defer self.output_mutex.unlock();
 
-        self.output_writer.print(
-            "{{\"id\":\"{s}\",\"status\":0,\"error\":\"{s}\"}}\n",
-            .{ id, error_message },
-        ) catch {};
-    }
-};
+            self.output_writer.print(
+                "{{\"id\":\"{s}\",\"status\":0,\"error\":\"{s}\"}}\n",
+                .{ id, error_message },
+            ) catch {};
+        }
+    };
+}
