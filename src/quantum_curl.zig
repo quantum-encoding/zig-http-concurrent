@@ -74,11 +74,13 @@ pub fn main() !void {
     }
 
     // Initialize engine
-    const stdout = std.io.getStdOut().writer();
+    const stdout_file = std.fs.File.stdout();
+    var stdout_buffer: [256]u8 = undefined;
+    var stdout_writer = stdout_file.writer(&stdout_buffer);
     var engine = try Engine.init(
         allocator,
         .{ .max_concurrency = max_concurrency },
-        stdout.any(),
+        stdout_writer.interface.any(),
     );
     defer engine.deinit();
 
