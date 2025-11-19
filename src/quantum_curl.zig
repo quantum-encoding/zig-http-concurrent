@@ -94,7 +94,8 @@ fn readRequestsFromFile(
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
 
-    const reader = file.reader();
+    var file_buffer: [4096]u8 = undefined;
+    const reader = file.reader(&file_buffer);
     try readJsonLines(allocator, reader, requests);
 }
 
@@ -102,7 +103,9 @@ fn readRequestsFromStdin(
     allocator: std.mem.Allocator,
     requests: *std.ArrayList(manifest.RequestManifest),
 ) !void {
-    const stdin = std.io.getStdIn().reader();
+    var stdin_buffer: [4096]u8 = undefined;
+    const stdin_file = std.io.getStdIn();
+    const stdin = stdin_file.reader(&stdin_buffer);
     try readJsonLines(allocator, stdin, requests);
 }
 
