@@ -130,13 +130,13 @@ pub fn Engine(comptime WriterType: type) type {
 
         self.writeResponse(&response);
         response.deinit();
-    }
+        }
 
         /// Execute HTTP request
         fn executeHttpRequest(self: *Self, request: *manifest.RequestManifest) !HttpClient.Response {
-        // Build headers
-        var headers = std.ArrayList(std.http.Header){};
-        defer headers.deinit(self.allocator);
+            // Build headers
+            var headers = std.ArrayList(std.http.Header){};
+            defer headers.deinit(self.allocator);
 
         if (request.headers) |*req_headers| {
             var it = req_headers.map.iterator();
