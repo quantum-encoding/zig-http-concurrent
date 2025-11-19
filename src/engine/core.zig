@@ -176,8 +176,8 @@ pub fn Engine(comptime WriterType: type) type {
         };
     }
 
-    /// Write error to output (thread-safe)
-    fn writeError(self: *Engine, id: []const u8, error_message: []const u8) void {
+        /// Write error to output (thread-safe)
+        fn writeError(self: *Self, id: []const u8, error_message: []const u8) void {
         self.output_mutex.lock();
         defer self.output_mutex.unlock();
 
