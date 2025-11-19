@@ -90,7 +90,7 @@ pub fn main() !void {
     try engine.processBatch(requests.items);
 
     // Flush any remaining buffered output
-    try writer.flush();
+    try std.Io.Writer.flush(&writer.interface);
 }
 
 fn readRequestsFromFile(
