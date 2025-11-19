@@ -96,33 +96,32 @@ fn readRequestsFromFile(
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
 
-    var file_buffer: [4096]u8 = undefined;
-    var reader = file.reader(&file_buffer);
-    try readJsonLines(allocator, &reader, requests);
+    const content = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // 10MB max
+    defer allocator.free(content);
+
+    try parseJsonLines(allocator, content, requests);
 }
 
 fn readRequestsFromStdin(
     allocator: std.mem.Allocator,
     requests: *std.ArrayList(manifest.RequestManifest),
 ) !void {
-    var stdin_buffer: [4096]u8 = undefined;
-    const stdin_file = std.fs.File.stdin();
-    var stdin = stdin_file.reader(&stdin_buffer);
-    try readJsonLines(allocator, &stdin, requests);
+    const stdin = std.fs.File.stdin();
+    const content = try stdin.readToEndAlloc(allocator, 10 * 1024 * 1024); // 10MB max
+    defer allocator.free(content);
+
+    try parseJsonLines(allocator, content, requests);
 }
 
-fn readJsonLines(
+fn parseJsonLines(
     allocator: std.mem.Allocator,
-    reader: anytype,
+    content: []const u8,
     requests: *std.ArrayList(manifest.RequestManifest),
 ) !void {
+    var line_iter = std.mem.splitScalar(u8, content, '\n');
     var line_num: usize = 0;
 
-    while (true) {
-        const line = reader.interface.takeDelimiter('\n') catch |err| switch (err) {
-            error.ReadFailed, error.StreamTooLong => return err,
-        } orelse break;
-
+    while (line_iter.next()) |line| {
         line_num += 1;
 
         const trimmed = std.mem.trim(u8, line, &std.ascii.whitespace);
