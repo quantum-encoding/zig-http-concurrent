@@ -54,12 +54,12 @@ pub fn main() !void {
     }
 
     // Read input
-    var requests = std.ArrayList(manifest.RequestManifest).init(allocator);
+    var requests = std.ArrayList(manifest.RequestManifest){};
     defer {
         for (requests.items) |*req| {
             req.deinit();
         }
-        requests.deinit();
+        requests.deinit(allocator);
     }
 
     if (input_file) |file_path| {
