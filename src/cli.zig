@@ -406,7 +406,7 @@ pub const CLI = struct {
 };
 
 pub fn listProviders() void {
-    std.debug.print("\n🤖 Available AI Providers:\n\n", .{});
+    std.debug.print("\nAvailable AI Providers:\n\n", .{});
     std.debug.print("  1. claude    - {s}\n", .{Provider.claude.displayName()});
     std.debug.print("     Env var: {s}\n\n", .{Provider.claude.getEnvVar()});
 
