@@ -65,16 +65,16 @@ pub const AnthropicClient = struct {
         const start_time = std.time.milliTimestamp();
 
         // Build messages array
-        var messages = std.ArrayList(std.json.Value).init(self.allocator);
-        defer messages.deinit();
+        var messages = std.ArrayList(std.json.Value){};
+        defer messages.deinit(self.allocator);
 
         // Track parsed JSON objects for cleanup
-        var parsed_objects = std.ArrayList(std.json.Parsed(std.json.Value)).init(self.allocator);
+        var parsed_objects = std.ArrayList(std.json.Parsed(std.json.Value)){};
         defer {
             for (parsed_objects.items) |*parsed| {
                 parsed.deinit();
             }
-            parsed_objects.deinit();
+            parsed_objects.deinit(self.allocator);
         }
 
         // Add context messages
