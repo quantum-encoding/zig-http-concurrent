@@ -53,13 +53,29 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a batch of request manifests
         pub fn processBatch(self: *Self, requests: []manifest.RequestManifest) !void {
-            var wg = std.Thread.WaitGroup{};
+            const max_concurrent = @min(self.config.max_concurrency, requests.len);
 
-            for (requests) |*request| {
-                self.thread_pool.spawnWg(&wg, processRequest, .{ self, request });
+            // Simple approach: spawn a thread for each request up to max_concurrency
+            var threads = try self.allocator.alloc(std.Thread, max_concurrent);
+            defer self.allocator.free(threads);
+
+            var request_index: usize = 0;
+            while (request_index < requests.len) {
+                // Spawn threads up to max_concurrency
+                const batch_size = @min(max_concurrent, requests.len - request_index);
+
+                for (0..batch_size) |i| {
+                    const req_idx = request_index + i;
+                    threads[i] = try std.Thread.spawn(.{}, processRequestThread, .{ self, &requests[req_idx] });
+                }
+
+                // Wait for this batch to complete
+                for (threads[0..batch_size]) |thread| {
+                    thread.join();
+                }
+
+                request_index += batch_size;
             }
-
-            wg.wait();
         }
 
         /// Process a single request (called by thread pool)
