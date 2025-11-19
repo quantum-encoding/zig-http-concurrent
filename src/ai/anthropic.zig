@@ -198,8 +198,8 @@ pub const AnthropicClient = struct {
         messages: []const std.json.Value,
         config: common.RequestConfig,
     ) ![]u8 {
-        var payload = std.ArrayList(u8){};
-        defer payload.deinit(self.allocator);
+        var payload = std.ArrayList(u8).init(self.allocator);
+        defer payload.deinit();
 
         try payload.appendSlice(self.allocator, "{");
 
