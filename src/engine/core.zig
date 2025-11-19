@@ -9,8 +9,7 @@
 
 const std = @import("std");
 const HttpClient = @import("../http_client.zig").HttpClient;
-const RetryEngine = @import("../retry.zig").RetryEngine;
-const CircuitBreaker = @import("../circuit_breaker.zig").CircuitBreaker;
+const RetryEngine = @import("../retry/retry.zig").RetryEngine;
 const manifest = @import("manifest.zig");
 
 pub const EngineConfig = struct {
