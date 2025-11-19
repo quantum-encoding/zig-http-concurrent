@@ -65,8 +65,8 @@ pub const AnthropicClient = struct {
         const start_time = std.time.milliTimestamp();
 
         // Build messages array
-        var messages = std.ArrayList(std.json.Value){};
-        defer messages.deinit(self.allocator);
+        var messages = std.ArrayList(std.json.Value).init(self.allocator);
+        defer messages.deinit();
 
         // Add context messages
         for (context) |msg| {
