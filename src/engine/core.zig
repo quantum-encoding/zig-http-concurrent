@@ -59,24 +59,24 @@ pub fn Engine(comptime WriterType: type) type {
             };
         }
 
-    pub fn deinit(self: *Engine) void {
-        self.thread_pool.deinit();
-        self.http_client.deinit();
-    }
-
-    /// Process a batch of request manifests
-    pub fn processBatch(self: *Engine, requests: []manifest.RequestManifest) !void {
-        var wg = std.Thread.WaitGroup{};
-
-        for (requests) |*request| {
-            self.thread_pool.spawnWg(&wg, processRequest, .{ self, request });
+        pub fn deinit(self: *Self) void {
+            self.thread_pool.deinit();
+            self.http_client.deinit();
         }
 
-        wg.wait();
-    }
+        /// Process a batch of request manifests
+        pub fn processBatch(self: *Self, requests: []manifest.RequestManifest) !void {
+            var wg = std.Thread.WaitGroup{};
 
-    /// Process a single request (called by thread pool)
-    fn processRequest(self: *Engine, request: *manifest.RequestManifest) void {
+            for (requests) |*request| {
+                self.thread_pool.spawnWg(&wg, processRequest, .{ self, request });
+            }
+
+            wg.wait();
+        }
+
+        /// Process a single request (called by thread pool)
+        fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
         const start_time = std.time.milliTimestamp();
 
         var response = manifest.ResponseManifest{
