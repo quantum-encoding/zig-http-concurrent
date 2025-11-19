@@ -155,8 +155,8 @@ pub const AnthropicClient = struct {
             }
 
             // Extract text response
-            var text_content = std.ArrayList(u8).init(self.allocator);
-            defer text_content.deinit();
+            var text_content = std.ArrayList(u8){};
+            defer text_content.deinit(self.allocator);
 
             for (content_array.array.items) |block| {
                 if (block.object.get("type")) |type_val| {
