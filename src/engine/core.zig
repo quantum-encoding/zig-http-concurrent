@@ -30,7 +30,6 @@ pub fn Engine(comptime WriterType: type) type {
         allocator: std.mem.Allocator,
         config: EngineConfig,
         retry_engine: RetryEngine,
-        thread_pool: std.Thread.Pool,
 
         /// Output writer for streaming results
         output_writer: WriterType,
@@ -39,25 +38,17 @@ pub fn Engine(comptime WriterType: type) type {
         output_mutex: std.Thread.Mutex,
 
         pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: WriterType) !Self {
-            var pool: std.Thread.Pool = undefined;
-            try pool.init(.{
-                .allocator = allocator,
-                .n_jobs = config.max_concurrency,
-                .track_ids = true, // CRITICAL: Must be true to properly initialize ids hash map
-            });
-
             return Self{
                 .allocator = allocator,
                 .config = config,
                 .retry_engine = RetryEngine.init(allocator, .{}),
-                .thread_pool = pool,
                 .output_writer = output_writer,
                 .output_mutex = .{},
             };
         }
 
         pub fn deinit(self: *Self) void {
-            self.thread_pool.deinit();
+            // Nothing to deinit
         }
 
         /// Process a batch of request manifests
