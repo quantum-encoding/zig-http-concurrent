@@ -99,16 +99,20 @@ pub fn Engine(comptime WriterType: type) type {
             var retry_count: u32 = 0;
 
             while (retry_count <= max_retries) : (retry_count += 1) {
+                std.debug.print("DEBUG: Calling executeHttpRequest (attempt {})\n", .{retry_count});
                 var result = self.executeHttpRequest(request);
+                std.debug.print("DEBUG: executeHttpRequest returned\n", .{});
 
                 if (result) |*http_response| {
                     defer http_response.deinit();
 
+                    std.debug.print("DEBUG: Got HTTP response with status: {}\n", .{http_response.status});
                     response.status = @intFromEnum(http_response.status);
                     response.body = self.allocator.dupe(u8, http_response.body) catch null;
                     response.retry_count = retry_count;
                     break;
                 } else |err| {
+                    std.debug.print("DEBUG: HTTP request failed with error: {}\n", .{err});
                     if (retry_count < max_retries) {
                         // Calculate exponential backoff
                         const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
