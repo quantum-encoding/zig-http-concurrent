@@ -305,7 +305,7 @@ pub const AnthropicClient = struct {
         };
     }
 
-    fn buildMessageJson(self: *AnthropicClient, msg: common.AIMessage) !std.json.Value {
+    fn buildMessageJson(self: *AnthropicClient, msg: common.AIMessage) !std.json.Parsed(std.json.Value) {
         const role_str = msg.role.toString();
         const escaped_content = try common.escapeJsonString(self.allocator, msg.content);
         defer self.allocator.free(escaped_content);
@@ -318,7 +318,7 @@ pub const AnthropicClient = struct {
         );
         defer self.allocator.free(json_str);
 
-        return try std.json.parseFromSliceLeaky(
+        return try std.json.parseFromSlice(
             std.json.Value,
             self.allocator,
             json_str,
