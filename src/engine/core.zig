@@ -49,7 +49,6 @@ pub fn Engine(comptime WriterType: type) type {
             return Self{
                 .allocator = allocator,
                 .config = config,
-                .http_client = HttpClient.init(allocator),
                 .retry_engine = RetryEngine.init(allocator, .{}),
                 .thread_pool = pool,
                 .output_writer = output_writer,
@@ -59,7 +58,6 @@ pub fn Engine(comptime WriterType: type) type {
 
         pub fn deinit(self: *Self) void {
             self.thread_pool.deinit();
-            self.http_client.deinit();
         }
 
         /// Process a batch of request manifests
