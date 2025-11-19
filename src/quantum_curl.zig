@@ -74,9 +74,8 @@ pub fn main() !void {
     }
 
     // Initialize engine
-    const stdout = std.io.getStdOut();
-    var buffered = std.io.bufferedWriter(stdout.writer());
-    const writer = buffered.writer();
+    const stdout = std.fs.File.stdout();
+    const writer = stdout.writer();
 
     const EngineType = Engine(@TypeOf(writer));
     var engine = try EngineType.init(
@@ -88,9 +87,6 @@ pub fn main() !void {
 
     // Process requests
     try engine.processBatch(requests.items);
-
-    // Flush output
-    try buffered.flush();
 }
 
 fn readRequestsFromFile(
