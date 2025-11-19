@@ -104,7 +104,7 @@ fn readRequestsFromStdin(
     requests: *std.ArrayList(manifest.RequestManifest),
 ) !void {
     var stdin_buffer: [4096]u8 = undefined;
-    const stdin_file = std.io.getStdIn();
+    const stdin_file = std.fs.File.stdin();
     var stdin = stdin_file.reader(&stdin_buffer);
     try readJsonLines(allocator, &stdin, requests);
 }
