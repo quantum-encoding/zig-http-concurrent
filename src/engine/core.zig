@@ -77,6 +77,7 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a single request (called by thread pool)
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
+            std.debug.print("DEBUG: processRequest started for ID: {s}\n", .{request.id});
             const start_time = std.time.milliTimestamp();
 
             var response = manifest.ResponseManifest{
@@ -91,6 +92,7 @@ pub fn Engine(comptime WriterType: type) type {
                 self.writeError(request.id, "Memory allocation failed");
                 return;
             };
+            std.debug.print("DEBUG: About to execute HTTP request for ID: {s}\n", .{request.id});
 
             // Execute request with retry
             const max_retries = request.max_retries orelse self.config.default_max_retries;
