@@ -47,7 +47,7 @@ pub fn Engine(comptime WriterType: type) type {
             };
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(_: *Self) void {
             // Nothing to deinit
         }
 
