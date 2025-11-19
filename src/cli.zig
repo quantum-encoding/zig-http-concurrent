@@ -386,7 +386,7 @@ pub const CLI = struct {
 
     fn printUsage(self: *CLI, response: ai.AIResponse) void {
         _ = self;
-        std.debug.print("📊 Tokens: {} in, {} out\n", .{
+        std.debug.print("Tokens: {} in, {} out\n", .{
             response.usage.input_tokens,
             response.usage.output_tokens,
         });
@@ -401,7 +401,7 @@ pub const CLI = struct {
             .vertex => response.usage.estimateCost(1.25, 5.0),
         };
 
-        std.debug.print("💰 Estimated cost: ${d:.6}\n", .{cost});
+        std.debug.print("Estimated cost: ${d:.6}\n", .{cost});
     }
 };
 
