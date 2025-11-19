@@ -78,7 +78,12 @@ pub fn Engine(comptime WriterType: type) type {
             }
         }
 
-        /// Process a single request (called by thread pool)
+        /// Thread entry point
+        fn processRequestThread(self: *Self, request: *manifest.RequestManifest) void {
+            self.processRequest(request);
+        }
+
+        /// Process a single request
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
             const start_time = std.time.milliTimestamp();
 
