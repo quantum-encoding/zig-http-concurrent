@@ -168,13 +168,13 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Write response to output (thread-safe)
         fn writeResponse(self: *Self, response: *manifest.ResponseManifest) void {
-        self.output_mutex.lock();
-        defer self.output_mutex.unlock();
+            self.output_mutex.lock();
+            defer self.output_mutex.unlock();
 
-        response.toJson(self.output_writer) catch |err| {
-            std.debug.print("Error writing response: {}\n", .{err});
-        };
-    }
+            response.toJson(self.output_writer) catch |err| {
+                std.debug.print("Error writing response: {}\n", .{err});
+            };
+        }
 
         /// Write error to output (thread-safe)
         fn writeError(self: *Self, id: []const u8, error_message: []const u8) void {
