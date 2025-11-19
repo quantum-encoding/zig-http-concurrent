@@ -207,9 +207,9 @@ pub const CLI = struct {
                         self.config.provider = new_provider;
                         conversation.deinit();
                         conversation = try ai.ConversationContext.init(self.allocator);
-                        std.debug.print("✅ Switched to {s}\n", .{new_provider.displayName()});
+                        std.debug.print("Switched to {s}\n", .{new_provider.displayName()});
                     } else {
-                        std.debug.print("❌ Unknown provider\n", .{});
+                        std.debug.print("Unknown provider\n", .{});
                     }
                     continue;
                 } else {
