@@ -29,7 +29,6 @@ pub fn Engine(comptime WriterType: type) type {
 
         allocator: std.mem.Allocator,
         config: EngineConfig,
-        http_client: HttpClient,
         retry_engine: RetryEngine,
         thread_pool: std.Thread.Pool,
 
