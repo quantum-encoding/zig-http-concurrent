@@ -243,8 +243,8 @@ pub const AnthropicClient = struct {
             if (i > 0) try payload.appendSlice(self.allocator, ",");
 
             // Serialize message using a temporary buffer
-            var msg_buf = std.ArrayList(u8).init(self.allocator);
-            defer msg_buf.deinit();
+            var msg_buf = std.ArrayList(u8){};
+            defer msg_buf.deinit(self.allocator);
 
             var msg_writer = std.Io.Writer.Allocating.init(self.allocator);
             defer msg_writer.deinit();
