@@ -116,9 +116,11 @@ fn readJsonLines(
 ) !void {
     var line_num: usize = 0;
 
-    while (reader.interface.takeDelimiter('\n') catch |err| switch (err) {
-        error.ReadFailed, error.StreamTooLong => return err,
-    } orelse break) |line| {
+    while (true) {
+        const line = reader.interface.takeDelimiter('\n') catch |err| switch (err) {
+            error.ReadFailed, error.StreamTooLong => return err,
+        } orelse break;
+
         line_num += 1;
 
         const trimmed = std.mem.trim(u8, line, &std.ascii.whitespace);
