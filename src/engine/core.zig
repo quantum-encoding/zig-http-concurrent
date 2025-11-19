@@ -103,18 +103,8 @@ pub const Engine = struct {
                 response.status = @intFromEnum(http_response.status);
                 response.body = self.allocator.dupe(u8, http_response.body) catch null;
                 response.retry_count = retry_count;
-
-                // Record success with circuit breaker
-                if (self.circuit_breaker) |*cb| {
-                    cb.recordSuccess();
-                }
                 break;
             } else |err| {
-                // Record failure with circuit breaker
-                if (self.circuit_breaker) |*cb| {
-                    cb.recordFailure();
-                }
-
                 if (retry_count < max_retries) {
                     // Calculate backoff
                     const backoff_ms = self.retry_engine.calculateBackoff(retry_count);
