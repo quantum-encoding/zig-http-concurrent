@@ -21,15 +21,6 @@ pub const EngineConfig = struct {
 
     /// Default retry attempts (can be overridden per-request)
     default_max_retries: u32 = 3,
-
-    /// Enable circuit breaker
-    enable_circuit_breaker: bool = true,
-
-    /// Circuit breaker failure threshold
-    circuit_breaker_threshold: u32 = 5,
-
-    /// Circuit breaker timeout
-    circuit_breaker_timeout_ms: u64 = 60_000,
 };
 
 pub const Engine = struct {
