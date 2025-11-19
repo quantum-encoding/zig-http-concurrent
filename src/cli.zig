@@ -60,11 +60,11 @@ pub const Provider = enum {
 
     pub fn displayName(self: Provider) []const u8 {
         return switch (self) {
-            .claude => "Claude (Anthropic)",
-            .deepseek => "DeepSeek (Ultra-Affordable)",
-            .gemini => "Gemini (Google)",
-            .grok => "Grok (X.AI)",
-            .vertex => "Vertex AI (Google Cloud)",
+            .claude => "Claude",
+            .deepseek => "DeepSeek",
+            .gemini => "Gemini",
+            .grok => "Grok",
+            .vertex => "Vertex AI",
         };
     }
 
