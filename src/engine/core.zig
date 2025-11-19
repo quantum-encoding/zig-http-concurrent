@@ -23,38 +23,41 @@ pub const EngineConfig = struct {
     default_max_retries: u32 = 3,
 };
 
-pub const Engine = struct {
-    allocator: std.mem.Allocator,
-    config: EngineConfig,
-    http_client: HttpClient,
-    retry_engine: RetryEngine,
+pub fn Engine(comptime WriterType: type) type {
+    return struct {
+        const Self = @This();
 
-    /// Thread pool for concurrent execution
-    thread_pool: std.Thread.Pool,
+        allocator: std.mem.Allocator,
+        config: EngineConfig,
+        http_client: HttpClient,
+        retry_engine: RetryEngine,
 
-    /// Output writer for streaming results
-    output_writer: *std.Io.Writer,
+        /// Thread pool for concurrent execution
+        thread_pool: std.Thread.Pool,
 
-    /// Mutex for synchronized output
-    output_mutex: std.Thread.Mutex,
+        /// Output writer for streaming results
+        output_writer: WriterType,
 
-    pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: *std.Io.Writer) !Engine {
-        var thread_pool: std.Thread.Pool = undefined;
-        try thread_pool.init(.{
-            .allocator = allocator,
-            .n_jobs = config.max_concurrency,
-        });
+        /// Mutex for synchronized output
+        output_mutex: std.Thread.Mutex,
 
-        return Engine{
-            .allocator = allocator,
-            .config = config,
-            .http_client = HttpClient.init(allocator),
-            .retry_engine = RetryEngine.init(allocator, .{}),
-            .thread_pool = thread_pool,
-            .output_writer = output_writer,
-            .output_mutex = .{},
-        };
-    }
+        pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: WriterType) !Self {
+            var thread_pool: std.Thread.Pool = undefined;
+            try thread_pool.init(.{
+                .allocator = allocator,
+                .n_jobs = config.max_concurrency,
+            });
+
+            return Self{
+                .allocator = allocator,
+                .config = config,
+                .http_client = HttpClient.init(allocator),
+                .retry_engine = RetryEngine.init(allocator, .{}),
+                .thread_pool = thread_pool,
+                .output_writer = output_writer,
+                .output_mutex = .{},
+            };
+        }
 
     pub fn deinit(self: *Engine) void {
         self.thread_pool.deinit();
