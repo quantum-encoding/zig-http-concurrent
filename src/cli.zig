@@ -119,13 +119,13 @@ pub const CLI = struct {
 
     /// Execute a single query
     pub fn query(self: *CLI, prompt: []const u8) !void {
-        std.debug.print("\n🤖 {s}\n", .{self.config.provider.displayName()});
-        std.debug.print("💬 Query: {s}\n\n", .{prompt});
+        std.debug.print("\n{s}\n", .{self.config.provider.displayName()});
+        std.debug.print("Query: {s}\n\n", .{prompt});
 
         var response = try self.sendToProvider(prompt, null);
         defer response.deinit();
 
-        std.debug.print("✨ Response:\n{s}\n\n", .{response.message.content});
+        std.debug.print("Response:\n{s}\n\n", .{response.message.content});
 
         if (self.config.show_usage) {
             self.printUsage(response);
