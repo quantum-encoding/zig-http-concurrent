@@ -78,7 +78,8 @@ pub fn main() !void {
     var buffered = std.io.bufferedWriter(stdout.writer());
     const writer = buffered.writer();
 
-    var engine = try Engine.init(
+    const EngineType = Engine(@TypeOf(writer));
+    var engine = try EngineType.init(
         allocator,
         .{ .max_concurrency = max_concurrency },
         writer,
