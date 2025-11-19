@@ -132,8 +132,8 @@ pub const Engine = struct {
     /// Execute HTTP request
     fn executeHttpRequest(self: *Engine, request: *manifest.RequestManifest) !HttpClient.Response {
         // Build headers
-        var headers = std.ArrayList(std.http.Header).init(self.allocator);
-        defer headers.deinit();
+        var headers = std.ArrayList(std.http.Header){};
+        defer headers.deinit(self.allocator);
 
         if (request.headers) |*req_headers| {
             var it = req_headers.map.iterator();
