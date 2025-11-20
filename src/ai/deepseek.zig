@@ -28,9 +28,9 @@ pub const DeepSeekClient = struct {
     };
 
     /// Initialize DeepSeek client with API key
-    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) DeepSeekClient {
+    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) !DeepSeekClient {
         return .{
-            .client = anthropic.AnthropicClient.init(allocator, .{
+            .client = try anthropic.AnthropicClient.init(allocator, .{
                 .api_key = api_key,
                 .base_url = DEEPSEEK_ANTHROPIC_BASE,
                 .provider_name = "deepseek",
