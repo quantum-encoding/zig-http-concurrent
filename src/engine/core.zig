@@ -85,7 +85,7 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a single request
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
-            const start_time = std.time.milliTimestamp();
+            var timer = std.time.Timer.start() catch unreachable;
 
             // Create thread-local HTTP client
             var http_client = HttpClient.init(self.allocator);
