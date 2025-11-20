@@ -251,7 +251,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = deepseek.DeepSeekClient.init(
+                var client = try deepseek.DeepSeekClient.init(
                     self.allocator,
                     api_key,
                 );
@@ -266,7 +266,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = gemini.GeminiClient.init(
+                var client = try gemini.GeminiClient.init(
                     self.allocator,
                     api_key,
                 );
@@ -281,7 +281,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = grok.GrokClient.init(
+                var client = try grok.GrokClient.init(
                     self.allocator,
                     api_key,
                 );
@@ -296,7 +296,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(project_id);
 
-                var client = vertex.VertexClient.init(
+                var client = try vertex.VertexClient.init(
                     self.allocator,
                     .{ .project_id = project_id },
                 );
