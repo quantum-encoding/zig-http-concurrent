@@ -138,7 +138,7 @@ pub const RetryEngine = struct {
         }
         
         fn refillTokens(self: *RateLimiter) void {
-            const now = std.time.milliTimestamp();
+            const now = @divTrunc(std.time.nanoTimestamp(), std.time.ns_per_ms);
             const elapsed_ms = now - self.last_refill;
             const elapsed_seconds = @as(f64, @floatFromInt(elapsed_ms)) / 1000.0;
             
