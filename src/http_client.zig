@@ -18,12 +18,13 @@ const http = std.http;
 /// - Automatic gzip decompression
 pub const HttpClient = struct {
     allocator: std.mem.Allocator,
-    io_threaded: std.Io.Threaded,
+    io_threaded: *std.Io.Threaded,
     client: http.Client,
 
     /// Initialize a new HTTP client
-    pub fn init(allocator: std.mem.Allocator) HttpClient {
-        var io_threaded = std.Io.Threaded.init(allocator);
+    pub fn init(allocator: std.mem.Allocator) !HttpClient {
+        const io_threaded = try allocator.create(std.Io.Threaded);
+        io_threaded.* = std.Io.Threaded.init(allocator);
         const io = io_threaded.io();
 
         return .{
@@ -40,6 +41,7 @@ pub const HttpClient = struct {
     pub fn deinit(self: *HttpClient) void {
         self.client.deinit();
         self.io_threaded.deinit();
+        self.allocator.destroy(self.io_threaded);
     }
 
     /// Decompress gzip-encoded body if needed
