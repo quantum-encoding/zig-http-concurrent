@@ -7,7 +7,7 @@
 const std = @import("std");
 const http = std.http;
 
-/// A robust, thread-safe HTTP client for Zig 0.16.0
+/// A robust, thread-safe HTTP client for Zig 0.16.0-dev.1303+
 ///
 /// Features:
 /// - Simplified API for GET, POST, PUT, PATCH, DELETE operations
@@ -18,19 +18,28 @@ const http = std.http;
 /// - Automatic gzip decompression
 pub const HttpClient = struct {
     allocator: std.mem.Allocator,
+    io_threaded: std.Io.Threaded,
     client: http.Client,
 
     /// Initialize a new HTTP client
     pub fn init(allocator: std.mem.Allocator) HttpClient {
+        var io_threaded = std.Io.Threaded.init(allocator);
+        const io = io_threaded.io();
+
         return .{
             .allocator = allocator,
-            .client = http.Client{ .allocator = allocator },
+            .io_threaded = io_threaded,
+            .client = http.Client{
+                .allocator = allocator,
+                .io = io,
+            },
         };
     }
 
     /// Clean up client resources
     pub fn deinit(self: *HttpClient) void {
         self.client.deinit();
+        self.io_threaded.deinit();
     }
 
     /// Decompress gzip-encoded body if needed
