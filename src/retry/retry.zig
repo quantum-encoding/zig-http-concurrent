@@ -30,7 +30,7 @@ pub const CircuitBreaker = struct {
     state: CircuitState = .closed,
     failure_count: u32 = 0,
     success_count: u32 = 0,
-    last_failure_time: i64 = 0,
+    last_failure_time: ?std.time.Instant = null,
     config: RetryConfig,
     mutex: std.Thread.Mutex = .{},
     
