@@ -236,7 +236,7 @@ pub const BatchExecutor = struct {
                 ) catch return ai_common.AIError.AuthenticationFailed;
                 defer self.allocator.free(api_key);
 
-                var client = anthropic.AnthropicClient.init(
+                var client = try anthropic.AnthropicClient.init(
                     self.allocator,
                     .{ .api_key = api_key },
                 );
