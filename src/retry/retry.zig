@@ -47,10 +47,14 @@ pub const CircuitBreaker = struct {
         switch (self.state) {
             .closed => return true,
             .open => {
-                const now = @divTrunc(std.time.nanoTimestamp(), std.time.ns_per_ms);
-                if (now - self.last_failure_time > self.config.circuit_recovery_timeout_ms) {
-                    self.state = .half_open;
-                    return true;
+                if (self.last_failure_time) |last_failure| {
+                    const now = std.time.Instant.now() catch return false;
+                    const elapsed_ns = now.since(last_failure);
+                    const elapsed_ms = elapsed_ns / std.time.ns_per_ms;
+                    if (elapsed_ms > self.config.circuit_recovery_timeout_ms) {
+                        self.state = .half_open;
+                        return true;
+                    }
                 }
                 return false;
             },
