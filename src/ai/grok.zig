@@ -55,7 +55,7 @@ pub const GrokClient = struct {
         context: []const common.AIMessage,
         config: common.RequestConfig,
     ) !common.AIResponse {
-        const start_time = std.time.milliTimestamp();
+        var timer = std.time.Timer.start() catch unreachable;
 
         // Build messages array (OpenAI format)
         var messages = std.ArrayList(u8){};
@@ -146,7 +146,7 @@ pub const GrokClient = struct {
             const content = message.object.get("content") orelse
                 return common.AIError.InvalidResponse;
 
-            const end_time = std.time.milliTimestamp();
+            const elapsed_ns = timer.read();
 
             return common.AIResponse{
                 .message = .{
@@ -167,7 +167,7 @@ pub const GrokClient = struct {
                     .model = try self.allocator.dupe(u8, config.model),
                     .provider = try self.allocator.dupe(u8, "grok"),
                     .turns_used = turn_count + 1,
-                    .execution_time_ms = @intCast(end_time - start_time),
+                    .execution_time_ms = @intCast(elapsed_ns / std.time.ns_per_ms),
                     .stop_reason = if (choice.object.get("finish_reason")) |reason|
                         try self.allocator.dupe(u8, reason.string)
                     else

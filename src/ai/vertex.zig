@@ -96,7 +96,7 @@ pub const VertexClient = struct {
         context: []const common.AIMessage,
         config: common.RequestConfig,
     ) !common.AIResponse {
-        const start_time = std.time.milliTimestamp();
+        var timer = std.time.Timer.start() catch unreachable;
 
         // Get access token
         const token = try self.getAccessToken();
@@ -197,7 +197,7 @@ pub const VertexClient = struct {
                 return common.AIError.InvalidResponse;
             }
 
-            const end_time = std.time.milliTimestamp();
+            const elapsed_ns = timer.read();
 
             return common.AIResponse{
                 .message = .{
@@ -215,7 +215,7 @@ pub const VertexClient = struct {
                     .model = try self.allocator.dupe(u8, config.model),
                     .provider = try self.allocator.dupe(u8, "vertex"),
                     .turns_used = turn_count + 1,
-                    .execution_time_ms = @intCast(end_time - start_time),
+                    .execution_time_ms = @intCast(elapsed_ns / std.time.ns_per_ms),
                     .allocator = self.allocator,
                 },
             };

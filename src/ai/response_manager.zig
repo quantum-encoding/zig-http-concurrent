@@ -193,7 +193,7 @@ pub const StoredResponse = struct {
         return .{
             .id = try common.generateId(allocator),
             .conversation_id = try allocator.dupe(u8, conversation_id),
-            .timestamp = std.time.milliTimestamp(),
+            .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
             .request = try request.clone(allocator),
             .response = response, // Ownership transferred
             .allocator = allocator,
@@ -323,7 +323,7 @@ test "ResponseManager basic operations" {
             .id = try allocator.dupe(u8, "msg-1"),
             .role = .assistant,
             .content = try allocator.dupe(u8, "Hi there!"),
-            .timestamp = std.time.milliTimestamp(),
+            .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
             .allocator = allocator,
         },
         .usage = .{

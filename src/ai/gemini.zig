@@ -56,7 +56,7 @@ pub const GeminiClient = struct {
         context: []const common.AIMessage,
         config: common.RequestConfig,
     ) !common.AIResponse {
-        const start_time = std.time.milliTimestamp();
+        var timer = std.time.Timer.start() catch unreachable;
 
         // Build contents array (Gemini format)
         var contents = std.ArrayList(u8){};
@@ -154,7 +154,7 @@ pub const GeminiClient = struct {
                 return common.AIError.InvalidResponse;
             }
 
-            const end_time = std.time.milliTimestamp();
+            const elapsed_ns = timer.read();
 
             return common.AIResponse{
                 .message = .{
@@ -172,7 +172,7 @@ pub const GeminiClient = struct {
                     .model = try self.allocator.dupe(u8, config.model),
                     .provider = try self.allocator.dupe(u8, "gemini"),
                     .turns_used = turn_count + 1,
-                    .execution_time_ms = @intCast(end_time - start_time),
+                    .execution_time_ms = @intCast(elapsed_ns / std.time.ns_per_ms),
                     .allocator = self.allocator,
                 },
             };
