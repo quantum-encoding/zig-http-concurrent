@@ -181,7 +181,8 @@ pub const RetryEngine = struct {
             if (!self.rate_limiter.tryAcquire(1.0)) {
                 const wait_ms = self.rate_limiter.getWaitTimeMs(1.0);
                 if (wait_ms > 0 and wait_ms < 5000) { // Don't wait more than 5 seconds
-                    std.Thread.sleep(wait_ms * std.time.ns_per_ms);
+                    const wait_ns = wait_ms * std.time.ns_per_ms;
+                    std.posix.nanosleep(0, wait_ns);
                 }
             }
             
