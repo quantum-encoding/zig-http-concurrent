@@ -105,7 +105,7 @@ pub const RetryEngine = struct {
                 .tokens = max_tokens,
                 .max_tokens = max_tokens,
                 .refill_rate = max_tokens / 60.0, // per second
-                .last_refill = std.time.milliTimestamp(),
+                .last_refill = @divTrunc(std.time.nanoTimestamp(), std.time.ns_per_ms),
             };
         }
         
