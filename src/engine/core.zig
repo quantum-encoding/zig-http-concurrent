@@ -88,7 +88,10 @@ pub fn Engine(comptime WriterType: type) type {
             var timer = std.time.Timer.start() catch unreachable;
 
             // Create thread-local HTTP client
-            var http_client = HttpClient.init(self.allocator);
+            var http_client = HttpClient.init(self.allocator) catch {
+                self.writeError(request.id, "Failed to initialize HTTP client");
+                return;
+            };
             defer http_client.deinit();
 
             var response = manifest.ResponseManifest{
