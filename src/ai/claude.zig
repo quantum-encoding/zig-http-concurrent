@@ -26,9 +26,9 @@ pub const ClaudeClient = struct {
     };
 
     /// Initialize Claude client with API key
-    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) ClaudeClient {
+    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) !ClaudeClient {
         return .{
-            .client = anthropic.AnthropicClient.init(allocator, .{
+            .client = try anthropic.AnthropicClient.init(allocator, .{
                 .api_key = api_key,
                 .base_url = CLAUDE_API_BASE,
                 .provider_name = "claude",
