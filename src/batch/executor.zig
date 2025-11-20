@@ -198,8 +198,8 @@ pub const BatchExecutor = struct {
                         .{err},
                     ) catch null;
 
-                    const end_time = std.time.milliTimestamp();
-                    result.execution_time_ms = @intCast(end_time - start_time);
+                    const elapsed_ns = timer.read();
+                    result.execution_time_ms = @intCast(elapsed_ns / std.time.ns_per_ms);
 
                     self.storeResult(result);
                     _ = self.failed.fetchAdd(1, .release);
