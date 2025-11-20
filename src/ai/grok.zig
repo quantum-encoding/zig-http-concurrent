@@ -27,9 +27,9 @@ pub const GrokClient = struct {
         pub const CODE_DEEP_1 = "grok-code-deep-1";
     };
 
-    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) GrokClient {
+    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) !GrokClient {
         return .{
-            .http_client = HttpClient.init(allocator),
+            .http_client = try HttpClient.init(allocator),
             .api_key = api_key,
             .allocator = allocator,
         };

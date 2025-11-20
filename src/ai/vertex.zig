@@ -38,9 +38,9 @@ pub const VertexClient = struct {
         location: []const u8 = DEFAULT_LOCATION,
     };
 
-    pub fn init(allocator: std.mem.Allocator, config: Config) VertexClient {
+    pub fn init(allocator: std.mem.Allocator, config: Config) !VertexClient {
         return .{
-            .http_client = HttpClient.init(allocator),
+            .http_client = try HttpClient.init(allocator),
             .project_id = config.project_id,
             .location = config.location,
             .allocator = allocator,

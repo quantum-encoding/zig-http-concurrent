@@ -28,9 +28,9 @@ pub const GeminiClient = struct {
         pub const FLASH_LITE_2_5 = "gemini-2.5-flash-lite";
     };
 
-    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) GeminiClient {
+    pub fn init(allocator: std.mem.Allocator, api_key: []const u8) !GeminiClient {
         return .{
-            .http_client = HttpClient.init(allocator),
+            .http_client = try HttpClient.init(allocator),
             .api_key = api_key,
             .allocator = allocator,
         };
