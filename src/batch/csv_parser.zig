@@ -34,7 +34,7 @@ pub fn parseFile(allocator: std.mem.Allocator, file_path: []const u8) ![]types.B
     const content = try allocator.alloc(u8, size);
     defer allocator.free(content);
 
-    const bytes_read = try file.readAll(content);
+    const bytes_read = try file.read(content);
     const actual_content = content[0..bytes_read];
 
     return try parseContent(allocator, actual_content);
