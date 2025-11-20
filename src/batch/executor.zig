@@ -51,7 +51,7 @@ pub const BatchExecutor = struct {
 
     /// Execute all requests using thread pool
     pub fn execute(self: *BatchExecutor) !void {
-        const start_time = std.time.milliTimestamp();
+        var timer = try std.time.Timer.start();
 
         // Determine thread count (cap at request count and concurrency limit)
         const thread_count = @min(self.requests.len, self.config.concurrency);
