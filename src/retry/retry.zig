@@ -143,10 +143,10 @@ pub const RetryEngine = struct {
         }
         
         fn refillTokens(self: *RateLimiter) void {
-            const now = @divTrunc(std.time.nanoTimestamp(), std.time.ns_per_ms);
-            const elapsed_ms = now - self.last_refill;
-            const elapsed_seconds = @as(f64, @floatFromInt(elapsed_ms)) / 1000.0;
-            
+            const now = std.time.Instant.now() catch return;
+            const elapsed_ns = now.since(self.last_refill);
+            const elapsed_seconds = @as(f64, @floatFromInt(elapsed_ns)) / @as(f64, std.time.ns_per_s);
+
             const tokens_to_add = elapsed_seconds * self.refill_rate;
             self.tokens = @min(self.max_tokens, self.tokens + tokens_to_add);
             self.last_refill = now;
