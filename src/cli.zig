@@ -300,7 +300,7 @@ pub const CLI = struct {
         const api_key = try std.process.getEnvVarOwned(self.allocator, "DEEPSEEK_API_KEY");
         defer self.allocator.free(api_key);
 
-        var client = ai.DeepSeekClient.init(self.allocator, api_key);
+        var client = try ai.DeepSeekClient.init(self.allocator, api_key);
         defer client.deinit();
 
         var config = ai.DeepSeekClient.defaultConfig();
@@ -324,7 +324,7 @@ pub const CLI = struct {
         const api_key = try std.process.getEnvVarOwned(self.allocator, "GOOGLE_GENAI_API_KEY");
         defer self.allocator.free(api_key);
 
-        var client = ai.GeminiClient.init(self.allocator, api_key);
+        var client = try ai.GeminiClient.init(self.allocator, api_key);
         defer client.deinit();
 
         var config = ai.GeminiClient.defaultConfig();
@@ -348,7 +348,7 @@ pub const CLI = struct {
         const api_key = try std.process.getEnvVarOwned(self.allocator, "XAI_API_KEY");
         defer self.allocator.free(api_key);
 
-        var client = ai.GrokClient.init(self.allocator, api_key);
+        var client = try ai.GrokClient.init(self.allocator, api_key);
         defer client.deinit();
 
         var config = ai.GrokClient.defaultConfig();
@@ -372,7 +372,7 @@ pub const CLI = struct {
         const project_id = try std.process.getEnvVarOwned(self.allocator, "VERTEX_PROJECT_ID");
         defer self.allocator.free(project_id);
 
-        var client = ai.VertexClient.init(self.allocator, .{ .project_id = project_id });
+        var client = try ai.VertexClient.init(self.allocator, .{ .project_id = project_id });
         defer client.deinit();
 
         var config = ai.VertexClient.defaultConfig();
