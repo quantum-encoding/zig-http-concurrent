@@ -152,13 +152,15 @@ pub const CLI = struct {
         var conversation = try ai.ConversationContext.init(self.allocator);
         defer conversation.deinit();
 
+        const io = std.Io.Threaded.init_single_threaded.io();
+
         const stdin_file = std.fs.File.stdin();
         var stdin_buffer: [256]u8 = undefined;
-        var stdin_reader = stdin_file.reader(&stdin_buffer);
+        var stdin_reader = stdin_file.reader(io, &stdin_buffer);
 
         const stdout_file = std.fs.File.stdout();
         var stdout_buffer: [256]u8 = undefined;
-        var stdout_writer = stdout_file.writer(&stdout_buffer);
+        var stdout_writer = stdout_file.writer(io, &stdout_buffer);
 
         while (true) {
             try stdout_writer.interface.writeAll("\n👤 You: ");
