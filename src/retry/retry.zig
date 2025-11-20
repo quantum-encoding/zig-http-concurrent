@@ -77,8 +77,8 @@ pub const CircuitBreaker = struct {
         defer self.mutex.unlock();
         
         self.failure_count += 1;
-        self.last_failure_time = std.time.milliTimestamp();
-        
+        self.last_failure_time = @divTrunc(std.time.nanoTimestamp(), std.time.ns_per_ms);
+
         if (self.failure_count >= self.config.circuit_failure_threshold) {
             self.state = .open;
             self.success_count = 0;
