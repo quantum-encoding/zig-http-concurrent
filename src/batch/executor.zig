@@ -113,7 +113,7 @@ pub const BatchExecutor = struct {
 
     /// Execute a single request (called by worker thread)
     fn executeRequest(self: *BatchExecutor, request: *const types.BatchRequest) void {
-        const start_time = std.time.milliTimestamp();
+        var timer = std.time.Timer.start() catch unreachable;
 
         var result = types.BatchResult{
             .id = request.id,
