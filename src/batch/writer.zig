@@ -84,7 +84,8 @@ fn writeFullResponses(
 
 /// Generate default output filename with timestamp
 pub fn generateOutputFilename(allocator: std.mem.Allocator) ![]u8 {
-    const timestamp = std.time.timestamp();
+    const ts = try std.posix.clock_gettime(std.posix.CLOCK.REALTIME);
+    const timestamp = ts.sec;
     return try std.fmt.allocPrint(
         allocator,
         "batch_results_{d}.csv",
