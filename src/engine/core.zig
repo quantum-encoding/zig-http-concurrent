@@ -137,8 +137,8 @@ pub fn Engine(comptime WriterType: type) type {
                 }
             }
 
-            const end_time = std.time.milliTimestamp();
-            response.latency_ms = @intCast(end_time - start_time);
+            const elapsed_ns = timer.read();
+            response.latency_ms = @intCast(elapsed_ns / std.time.ns_per_ms);
 
             self.writeResponse(&response);
             response.deinit();
