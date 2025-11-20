@@ -152,7 +152,8 @@ pub const CLI = struct {
         var conversation = try ai.ConversationContext.init(self.allocator);
         defer conversation.deinit();
 
-        const io = std.Io.Threaded.init_single_threaded.io();
+        var io_threaded = std.Io.Threaded.init_single_threaded;
+        const io = io_threaded.io();
 
         const stdin_file = std.fs.File.stdin();
         var stdin_buffer: [256]u8 = undefined;
