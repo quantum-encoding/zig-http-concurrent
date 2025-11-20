@@ -90,7 +90,7 @@ pub const BatchExecutor = struct {
                     failed,
                 });
 
-                std.Thread.sleep(100 * std.time.ns_per_ms);
+                std.posix.nanosleep(0, 100 * std.time.ns_per_ms);
             }
             std.debug.print("\r[INFO] Processed {}/{} requests (success: {} failed: {})...Done!\n\n", .{
                 self.requests.len,
@@ -100,8 +100,8 @@ pub const BatchExecutor = struct {
             });
         }
 
-        const end_time = std.time.milliTimestamp();
-        const duration_s = @as(f64, @floatFromInt(end_time - start_time)) / 1000.0;
+        const elapsed_ns = timer.read();
+        const duration_s = @as(f64, @floatFromInt(elapsed_ns)) / @as(f64, std.time.ns_per_s);
 
         if (self.config.show_progress) {
             std.debug.print("Batch complete!\n", .{});
