@@ -107,9 +107,10 @@ fn readRequestsFromFile(
     const content = try allocator.alloc(u8, file_size);
     defer allocator.free(content);
 
-    _ = try file.readAll(content);
+    const bytes_read = try file.read(content);
+    const actual_content = content[0..bytes_read];
 
-    try parseJsonLines(allocator, content, requests);
+    try parseJsonLines(allocator, actual_content, requests);
 }
 
 fn readRequestsFromStdin(
