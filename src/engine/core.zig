@@ -122,7 +122,8 @@ pub fn Engine(comptime WriterType: type) type {
                     if (retry_count < max_retries) {
                         // Calculate exponential backoff
                         const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
-                        std.Thread.sleep(backoff_ms * std.time.ns_per_ms);
+                        const backoff_ns = backoff_ms * std.time.ns_per_ms;
+                        std.posix.nanosleep(0, backoff_ns);
                         continue;
                     } else {
                         // Final failure
