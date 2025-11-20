@@ -218,7 +218,8 @@ pub const RetryEngine = struct {
                 // Calculate backoff delay
                 if (attempt < self.config.max_attempts) {
                     const delay_ms = self.calculateBackoffDelay(attempt);
-                    std.Thread.sleep(delay_ms * std.time.ns_per_ms);
+                    const delay_ns = delay_ms * std.time.ns_per_ms;
+                    std.posix.nanosleep(0, delay_ns);
                 }
             }
         }
