@@ -32,9 +32,9 @@ pub const AnthropicClient = struct {
         provider_name: []const u8 = "anthropic",
     };
 
-    pub fn init(allocator: std.mem.Allocator, config: Config) AnthropicClient {
+    pub fn init(allocator: std.mem.Allocator, config: Config) !AnthropicClient {
         return .{
-            .http_client = HttpClient.init(allocator),
+            .http_client = try HttpClient.init(allocator),
             .api_key = config.api_key,
             .base_url = config.base_url,
             .provider_name = config.provider_name,
