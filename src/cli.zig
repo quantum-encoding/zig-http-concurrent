@@ -276,7 +276,7 @@ pub const CLI = struct {
         const api_key = try std.process.getEnvVarOwned(self.allocator, "ANTHROPIC_API_KEY");
         defer self.allocator.free(api_key);
 
-        var client = ai.ClaudeClient.init(self.allocator, api_key);
+        var client = try ai.ClaudeClient.init(self.allocator, api_key);
         defer client.deinit();
 
         var config = ai.ClaudeClient.defaultConfig();
