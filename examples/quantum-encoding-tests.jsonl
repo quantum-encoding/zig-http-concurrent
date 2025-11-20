@@ -1,0 +1,10 @@
+{"id":"homepage","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/"}
+{"id":"favicon","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/favicon.ico"}
+{"id":"robots","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/robots.txt"}
+{"id":"sitemap","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/sitemap.xml"}
+{"id":"api-health","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/api/health"}
+{"id":"api-status","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/api/status"}
+{"id":"api-version","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/api/version"}
+{"id":"assets-css","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/assets/main.css"}
+{"id":"assets-js","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/assets/main.js"}
+{"id":"404-test","method":"GET","url":"https://crg-direct-pre-production--quantum-encoding-v3.europe-west4.hosted.app/nonexistent-page-test"}
