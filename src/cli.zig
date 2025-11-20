@@ -238,7 +238,7 @@ pub const CLI = struct {
                 .id = try ai.common.generateId(self.allocator),
                 .role = .user,
                 .content = try self.allocator.dupe(u8, trimmed),
-                .timestamp = std.time.milliTimestamp(),
+                .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
                 .allocator = self.allocator,
             };
             try conversation.addMessage(user_msg);
