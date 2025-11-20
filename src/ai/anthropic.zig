@@ -180,7 +180,7 @@ pub const AnthropicClient = struct {
                         parsed.value.object.get("id").?.string),
                     .role = .assistant,
                     .content = try text_content.toOwnedSlice(self.allocator),
-                    .timestamp = end_time,
+                    .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
                     .allocator = self.allocator,
                 },
                 .usage = .{

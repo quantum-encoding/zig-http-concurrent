@@ -156,7 +156,7 @@ pub const GrokClient = struct {
                         try common.generateId(self.allocator),
                     .role = .assistant,
                     .content = try self.allocator.dupe(u8, content.string),
-                    .timestamp = end_time,
+                    .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
                     .allocator = self.allocator,
                 },
                 .usage = .{

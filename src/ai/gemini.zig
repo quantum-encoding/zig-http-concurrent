@@ -161,7 +161,7 @@ pub const GeminiClient = struct {
                     .id = try common.generateId(self.allocator),
                     .role = .assistant,
                     .content = try text_content.toOwnedSlice(self.allocator),
-                    .timestamp = end_time,
+                    .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
                     .allocator = self.allocator,
                 },
                 .usage = .{
