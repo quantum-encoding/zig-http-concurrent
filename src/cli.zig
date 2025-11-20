@@ -161,7 +161,7 @@ pub const CLI = struct {
 
         const stdout_file = std.fs.File.stdout();
         var stdout_buffer: [256]u8 = undefined;
-        var stdout_writer = stdout_file.writer(io, &stdout_buffer);
+        var stdout_writer = stdout_file.writer(&stdout_buffer);
 
         while (true) {
             try stdout_writer.interface.writeAll("\n👤 You: ");
