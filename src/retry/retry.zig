@@ -105,11 +105,12 @@ pub const RetryEngine = struct {
         
         pub fn init(max_requests_per_minute: u32) RateLimiter {
             const max_tokens = @as(f64, @floatFromInt(max_requests_per_minute));
+            const now = std.time.Instant.now() catch unreachable;
             return RateLimiter{
                 .tokens = max_tokens,
                 .max_tokens = max_tokens,
                 .refill_rate = max_tokens / 60.0, // per second
-                .last_refill = @divTrunc(std.time.nanoTimestamp(), std.time.ns_per_ms),
+                .last_refill = now,
             };
         }
         
