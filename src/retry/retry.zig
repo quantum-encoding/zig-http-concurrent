@@ -100,7 +100,7 @@ pub const RetryEngine = struct {
         tokens: f64,
         max_tokens: f64,
         refill_rate: f64, // tokens per second
-        last_refill: i64,
+        last_refill: std.time.Instant,
         mutex: std.Thread.Mutex = .{},
         
         pub fn init(max_requests_per_minute: u32) RateLimiter {
