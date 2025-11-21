@@ -11,4 +11,5 @@ build/
 .claude/
 test_concurrent
 test_resilient
-test_integration
+test_integration.git-rewrite/
+.git-rewrite/
