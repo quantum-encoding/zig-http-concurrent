@@ -342,11 +342,17 @@ pub const HttpClient = struct {
         );
         defer self.allocator.free(body_data);
 
-        const body_slice = try self.allocator.dupe(u8, body_data);
+        // Decompress body if needed
+        const content_encoding_str: ?[]const u8 = switch (response.head.content_encoding) {
+            .gzip => "gzip",
+            .identity => null,
+            else => null,
+        };
+        const final_body = try self.decompressBody(body_data, content_encoding_str);
 
         return Response{
             .status = response.head.status,
-            .body = body_slice,
+            .body = final_body,
             .allocator = self.allocator,
         };
     }
