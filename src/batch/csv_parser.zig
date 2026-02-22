@@ -22,22 +22,28 @@ pub const ParseError = error{
 
 /// Parse CSV file into BatchRequest array
 pub fn parseFile(allocator: std.mem.Allocator, file_path: []const u8) ![]types.BatchRequest {
-    const file = try std.fs.cwd().openFile(file_path, .{});
-    defer file.close();
+    // Read file using posix API
+    const path_z = try allocator.dupeZ(u8, file_path);
+    defer allocator.free(path_z);
 
-    // Get file size
-    const stat = try file.stat();
-    const max_size = 10 * 1024 * 1024; // 10MB max
-    const size = @min(stat.size, max_size);
+    const fd = try std.posix.openatZ(std.posix.AT.FDCWD, path_z, .{ .ACCMODE = .RDONLY }, 0);
+    defer std.posix.close(fd);
 
-    // Allocate buffer and read
-    const content = try allocator.alloc(u8, size);
+    // Read file contents
+    var content_list = std.ArrayListUnmanaged(u8){};
+    defer content_list.deinit(allocator);
+
+    var buf: [8192]u8 = undefined;
+    while (true) {
+        const n = std.c.read(fd, &buf, buf.len);
+        if (n <= 0) break;
+        try content_list.appendSlice(allocator, buf[0..@intCast(n)]);
+    }
+
+    const content = try allocator.dupe(u8, content_list.items);
     defer allocator.free(content);
 
-    const bytes_read = try file.read(content);
-    const actual_content = content[0..bytes_read];
-
-    return try parseContent(allocator, actual_content);
+    return try parseContent(allocator, content);
 }
 
 /// Parse CSV content string

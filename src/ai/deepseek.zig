@@ -65,7 +65,7 @@ pub const DeepSeekClient = struct {
     pub fn defaultConfig() common.RequestConfig {
         return .{
             .model = Models.CHAT,
-            .max_tokens = 8000,
+            .max_tokens = 65536,
             .temperature = 1.0,
         };
     }
@@ -74,7 +74,7 @@ pub const DeepSeekClient = struct {
     pub fn reasoningConfig() common.RequestConfig {
         return .{
             .model = Models.REASONER,
-            .max_tokens = 8000,
+            .max_tokens = 65536,
             .temperature = 1.0,
         };
     }
@@ -95,7 +95,7 @@ pub const DeepSeekClient = struct {
 test "DeepSeekClient initialization" {
     const allocator = std.testing.allocator;
 
-    var client = DeepSeekClient.init(allocator, "test-key");
+    var client = try DeepSeekClient.init(allocator, "test-key");
     defer client.deinit();
 
     try std.testing.expectEqualStrings("deepseek", client.client.provider_name);

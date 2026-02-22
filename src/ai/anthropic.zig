@@ -12,6 +12,33 @@
 //! - DeepSeek: https://api-docs.deepseek.com/guides/anthropic_api
 
 const std = @import("std");
+
+/// Timer using clock_gettime (Timer removed in Zig 0.16)
+const Timer = struct {
+    start_ts: std.c.timespec,
+
+    pub fn start() error{}!Timer {
+        var ts: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &ts);
+        return Timer{ .start_ts = ts };
+    }
+
+    pub fn read(self: *const Timer) u64 {
+        var now: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &now);
+        const start_ns: i128 = @as(i128, self.start_ts.sec) * 1_000_000_000 + self.start_ts.nsec;
+        const now_ns: i128 = @as(i128, now.sec) * 1_000_000_000 + now.nsec;
+        const diff = now_ns - start_ns;
+        return if (diff > 0) @intCast(diff) else 0;
+    }
+};
+
+/// Get current Unix timestamp in seconds (REALTIME clock)
+fn getCurrentTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.REALTIME, &ts);
+    return ts.sec;
+}
 const HttpClient = @import("../http_client.zig").HttpClient;
 const common = @import("common.zig");
 
@@ -62,7 +89,7 @@ pub const AnthropicClient = struct {
         context: []const common.AIMessage,
         config: common.RequestConfig,
     ) !common.AIResponse {
-        var timer = std.time.Timer.start() catch unreachable;
+        var timer = Timer.start() catch unreachable;
 
         // Build messages array
         var messages = std.ArrayList(std.json.Value){};
@@ -84,21 +111,64 @@ pub const AnthropicClient = struct {
             try messages.append(self.allocator, parsed.value);
         }
 
-        // Add current prompt
-        const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
-        defer self.allocator.free(escaped_prompt);
-        const prompt_json = try std.fmt.allocPrint(self.allocator,
-            \\{{"role":"user","content":"{s}"}}
-        , .{escaped_prompt});
-        defer self.allocator.free(prompt_json);
-        var prompt_parsed = try std.json.parseFromSlice(
-            std.json.Value,
-            self.allocator,
-            prompt_json,
-            .{},
-        );
-        try parsed_objects.append(self.allocator, prompt_parsed);
-        try messages.append(self.allocator, prompt_parsed.value);
+        // Add current prompt if non-empty (empty means caller manages all messages via context)
+        if (prompt.len > 0) {
+            const escaped_prompt = try common.escapeJsonString(self.allocator, prompt);
+            defer self.allocator.free(escaped_prompt);
+
+            var prompt_json: []u8 = undefined;
+            if (config.images) |images| {
+                // Build multimodal content array
+                var content_builder = std.ArrayList(u8){};
+                defer content_builder.deinit(self.allocator);
+
+                try content_builder.appendSlice(self.allocator, "{\"role\":\"user\",\"content\":[");
+
+                // Add text part first
+                const text_part = try std.fmt.allocPrint(self.allocator,
+                    \\{{"type":"text","text":"{s}"}}
+                , .{escaped_prompt});
+                defer self.allocator.free(text_part);
+                try content_builder.appendSlice(self.allocator, text_part);
+
+                // Add image parts
+                for (images) |img| {
+                    if (img.isUrl()) {
+                        // URL-based image
+                        const img_part = try std.fmt.allocPrint(self.allocator,
+                            \\,{{"type":"image","source":{{"type":"url","url":"{s}"}}}}
+                        , .{img.url.?});
+                        defer self.allocator.free(img_part);
+                        try content_builder.appendSlice(self.allocator, img_part);
+                    } else {
+                        // Base64-encoded image
+                        const img_part = try std.fmt.allocPrint(self.allocator,
+                            \\,{{"type":"image","source":{{"type":"base64","media_type":"{s}","data":"{s}"}}}}
+                        , .{ img.media_type, img.data });
+                        defer self.allocator.free(img_part);
+                        try content_builder.appendSlice(self.allocator, img_part);
+                    }
+                }
+
+                try content_builder.appendSlice(self.allocator, "]}");
+                prompt_json = try content_builder.toOwnedSlice(self.allocator);
+            } else {
+                // Simple text-only message
+                prompt_json = try std.fmt.allocPrint(self.allocator,
+                    \\{{"role":"user","content":"{s}"}}
+                , .{escaped_prompt});
+            }
+            defer self.allocator.free(prompt_json);
+
+            var prompt_parsed = try std.json.parseFromSlice(
+                std.json.Value,
+                self.allocator,
+                prompt_json,
+                .{},
+            );
+            try parsed_objects.append(self.allocator, prompt_parsed);
+            try messages.append(self.allocator, prompt_parsed.value);
+        }
 
         var turn_count: u32 = 0;
         var total_input_tokens: u32 = 0;
@@ -137,26 +207,15 @@ pub const AnthropicClient = struct {
             const content_array = parsed.value.object.get("content") orelse
                 return common.AIError.InvalidResponse;
 
-            // Check for tool use
-            var has_tool_use = false;
-            for (content_array.array.items) |block| {
-                if (block.object.get("type")) |type_val| {
-                    if (std.mem.eql(u8, type_val.string, "tool_use")) {
-                        has_tool_use = true;
-                        break;
-                    }
-                }
-            }
-
-            if (has_tool_use) {
-                // TODO: Implement tool calling support
-                // For now, return error
-                return common.AIError.ToolExecutionFailed;
-            }
-
-            // Extract text response
+            // Extract text content and tool calls from response
             var text_content = std.ArrayList(u8){};
             defer text_content.deinit(self.allocator);
+
+            var tool_calls = std.ArrayList(common.ToolCall){};
+            errdefer {
+                for (tool_calls.items) |*tc| tc.deinit();
+                tool_calls.deinit(self.allocator);
+            }
 
             for (content_array.array.items) |block| {
                 if (block.object.get("type")) |type_val| {
@@ -167,11 +226,39 @@ pub const AnthropicClient = struct {
                             }
                             try text_content.appendSlice(self.allocator, text_val.string);
                         }
+                    } else if (std.mem.eql(u8, type_val.string, "tool_use")) {
+                        // Extract tool call
+                        const tool_id = block.object.get("id") orelse continue;
+                        const tool_name = block.object.get("name") orelse continue;
+                        const tool_input = block.object.get("input") orelse continue;
+
+                        // Serialize input back to JSON string
+                        var input_writer: std.Io.Writer.Allocating = .init(self.allocator);
+                        defer input_writer.deinit();
+                        var write_stream: std.json.Stringify = .{
+                            .writer = &input_writer.writer,
+                            .options = .{},
+                        };
+                        try write_stream.write(tool_input);
+                        const input_json = input_writer.written();
+
+                        try tool_calls.append(self.allocator, .{
+                            .id = try self.allocator.dupe(u8, tool_id.string),
+                            .name = try self.allocator.dupe(u8, tool_name.string),
+                            .arguments = try self.allocator.dupe(u8, input_json),
+                            .allocator = self.allocator,
+                        });
                     }
                 }
             }
 
             const elapsed_ns = timer.read();
+
+            // Get stop reason
+            const stop_reason_str = if (parsed.value.object.get("stop_reason")) |sr|
+                try self.allocator.dupe(u8, sr.string)
+            else
+                null;
 
             // Build response
             return common.AIResponse{
@@ -180,7 +267,11 @@ pub const AnthropicClient = struct {
                         parsed.value.object.get("id").?.string),
                     .role = .assistant,
                     .content = try text_content.toOwnedSlice(self.allocator),
-                    .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
+                    .timestamp = getCurrentTimestamp(),
+                    .tool_calls = if (tool_calls.items.len > 0)
+                        try tool_calls.toOwnedSlice(self.allocator)
+                    else
+                        null,
                     .allocator = self.allocator,
                 },
                 .usage = .{
@@ -193,10 +284,7 @@ pub const AnthropicClient = struct {
                     .turns_used = turn_count + 1,
                     .execution_time_ms = @intCast(elapsed_ns / std.time.ns_per_ms),
                     .max_turns_reached = false,
-                    .stop_reason = if (parsed.value.object.get("stop_reason")) |sr|
-                        try self.allocator.dupe(u8, sr.string)
-                    else
-                        null,
+                    .stop_reason = stop_reason_str,
                     .allocator = self.allocator,
                 },
             };
@@ -236,6 +324,25 @@ pub const AnthropicClient = struct {
         const temp_part = try std.fmt.allocPrint(self.allocator, "\"temperature\":{d},", .{config.temperature});
         defer self.allocator.free(temp_part);
         try payload.appendSlice(self.allocator, temp_part);
+
+        // Tools (if provided)
+        if (config.tools) |tools| {
+            try payload.appendSlice(self.allocator, "\"tools\":[");
+            for (tools, 0..) |tool, i| {
+                if (i > 0) try payload.appendSlice(self.allocator, ",");
+                const escaped_name = try common.escapeJsonString(self.allocator, tool.name);
+                defer self.allocator.free(escaped_name);
+                const escaped_desc = try common.escapeJsonString(self.allocator, tool.description);
+                defer self.allocator.free(escaped_desc);
+
+                const tool_json = try std.fmt.allocPrint(self.allocator,
+                    \\{{"name":"{s}","description":"{s}","input_schema":{s}}}
+                , .{ escaped_name, escaped_desc, tool.input_schema });
+                defer self.allocator.free(tool_json);
+                try payload.appendSlice(self.allocator, tool_json);
+            }
+            try payload.appendSlice(self.allocator, "],");
+        }
 
         // Messages
         try payload.appendSlice(self.allocator, "\"messages\":[");
@@ -306,22 +413,78 @@ pub const AnthropicClient = struct {
     }
 
     fn buildMessageJson(self: *AnthropicClient, msg: common.AIMessage) !std.json.Parsed(std.json.Value) {
-        const role_str = msg.role.toString();
-        const escaped_content = try common.escapeJsonString(self.allocator, msg.content);
-        defer self.allocator.free(escaped_content);
+        var json_buf = std.ArrayList(u8){};
+        defer json_buf.deinit(self.allocator);
 
-        const json_str = try std.fmt.allocPrint(
-            self.allocator,
-            \\{{"role":"{s}","content":"{s}"}}
-        ,
-            .{ role_str, escaped_content },
-        );
-        defer self.allocator.free(json_str);
+        // Handle different message types
+        if (msg.tool_calls) |tool_calls| {
+            // Assistant message with tool use
+            try json_buf.appendSlice(self.allocator, "{\"role\":\"assistant\",\"content\":[");
+
+            var has_content = false;
+
+            // Add text content if present
+            if (msg.content.len > 0) {
+                const escaped = try common.escapeJsonString(self.allocator, msg.content);
+                defer self.allocator.free(escaped);
+                const text_part = try std.fmt.allocPrint(self.allocator,
+                    \\{{"type":"text","text":"{s}"}}
+                , .{escaped});
+                defer self.allocator.free(text_part);
+                try json_buf.appendSlice(self.allocator, text_part);
+                has_content = true;
+            }
+
+            // Add tool use blocks
+            for (tool_calls, 0..) |call, i| {
+                if (i > 0 or has_content) try json_buf.appendSlice(self.allocator, ",");
+
+                const escaped_name = try common.escapeJsonString(self.allocator, call.name);
+                defer self.allocator.free(escaped_name);
+
+                const tool_part = try std.fmt.allocPrint(self.allocator,
+                    \\{{"type":"tool_use","id":"{s}","name":"{s}","input":{s}}}
+                , .{ call.id, escaped_name, call.arguments });
+                defer self.allocator.free(tool_part);
+                try json_buf.appendSlice(self.allocator, tool_part);
+            }
+
+            try json_buf.appendSlice(self.allocator, "]}");
+        } else if (msg.tool_results) |tool_results| {
+            // User message with tool results
+            try json_buf.appendSlice(self.allocator, "{\"role\":\"user\",\"content\":[");
+
+            for (tool_results, 0..) |result, i| {
+                if (i > 0) try json_buf.appendSlice(self.allocator, ",");
+
+                const escaped = try common.escapeJsonString(self.allocator, result.content);
+                defer self.allocator.free(escaped);
+
+                const result_part = try std.fmt.allocPrint(self.allocator,
+                    \\{{"type":"tool_result","tool_use_id":"{s}","content":"{s}"}}
+                , .{ result.tool_call_id, escaped });
+                defer self.allocator.free(result_part);
+                try json_buf.appendSlice(self.allocator, result_part);
+            }
+
+            try json_buf.appendSlice(self.allocator, "]}");
+        } else {
+            // Simple text message
+            const role_str = msg.role.toString();
+            const escaped_content = try common.escapeJsonString(self.allocator, msg.content);
+            defer self.allocator.free(escaped_content);
+
+            const json_str = try std.fmt.allocPrint(self.allocator,
+                \\{{"role":"{s}","content":"{s}"}}
+            , .{ role_str, escaped_content });
+            defer self.allocator.free(json_str);
+            try json_buf.appendSlice(self.allocator, json_str);
+        }
 
         return try std.json.parseFromSlice(
             std.json.Value,
             self.allocator,
-            json_str,
+            json_buf.items,
             .{},
         );
     }
@@ -330,7 +493,7 @@ pub const AnthropicClient = struct {
 test "AnthropicClient initialization" {
     const allocator = std.testing.allocator;
 
-    var client = AnthropicClient.init(allocator, .{
+    var client = try AnthropicClient.init(allocator, .{
         .api_key = "test-key",
         .base_url = "https://test.example.com",
         .provider_name = "test",

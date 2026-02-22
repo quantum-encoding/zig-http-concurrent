@@ -12,32 +12,30 @@ const Engine = @import("engine/core.zig").Engine;
 const EngineConfig = @import("engine/core.zig").EngineConfig;
 const manifest = @import("engine/manifest.zig");
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
     // Parse command line arguments
-    var args = try std.process.argsWithAllocator(allocator);
-    defer args.deinit();
-
-    _ = args.skip(); // Skip program name
+    var args_iter = std.process.Args.Iterator.init(init.minimal.args);
+    _ = args_iter.next(); // Skip program name
 
     var input_file: ?[]const u8 = null;
     var max_concurrency: u32 = 50;
     var show_help = false;
 
-    while (args.next()) |arg| {
+    while (args_iter.next()) |arg| {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             show_help = true;
             break;
         } else if (std.mem.eql(u8, arg, "--file") or std.mem.eql(u8, arg, "-f")) {
-            input_file = args.next() orelse {
+            input_file = args_iter.next() orelse {
                 std.debug.print("Error: --file requires a path\n", .{});
                 return error.InvalidArgs;
             };
         } else if (std.mem.eql(u8, arg, "--concurrency") or std.mem.eql(u8, arg, "-c")) {
-            const concurrency_str = args.next() orelse {
+            const concurrency_str = args_iter.next() orelse {
                 std.debug.print("Error: --concurrency requires a value\n", .{});
                 return error.InvalidArgs;
             };
@@ -54,7 +52,7 @@ pub fn main() !void {
     }
 
     // Read input
-    var requests = std.ArrayList(manifest.RequestManifest){};
+    var requests = std.ArrayListUnmanaged(manifest.RequestManifest){};
     defer {
         for (requests.items) |*req| {
             req.deinit();
@@ -73,11 +71,16 @@ pub fn main() !void {
         return error.NoRequests;
     }
 
-
-    // Initialize engine
-    const stdout = std.fs.File.stdout();
-    var stdout_buffer: [8192]u8 = undefined;
-    var writer = stdout.writer(&stdout_buffer);
+    // Initialize engine - write directly to stdout using fd 1
+    const StdoutWriter = struct {
+        pub fn write(self: @This(), bytes: []const u8) !usize {
+            _ = self;
+            const n = std.c.write(1, bytes.ptr, bytes.len);
+            if (n < 0) return error.WriteError;
+            return @intCast(n);
+        }
+    };
+    const writer = StdoutWriter{};
 
     const EngineType = Engine(@TypeOf(writer));
     var engine = try EngineType.init(
@@ -89,54 +92,55 @@ pub fn main() !void {
 
     // Process requests
     try engine.processBatch(requests.items);
-
-    // Flush any remaining buffered output
-    try std.Io.Writer.flush(&writer.interface);
-
 }
 
 fn readRequestsFromFile(
     allocator: std.mem.Allocator,
     file_path: []const u8,
-    requests: *std.ArrayList(manifest.RequestManifest),
+    requests: *std.ArrayListUnmanaged(manifest.RequestManifest),
 ) !void {
-    const file = try std.fs.cwd().openFile(file_path, .{});
-    defer file.close();
+    const path_z = try allocator.dupeZ(u8, file_path);
+    defer allocator.free(path_z);
 
-    const file_size = (try file.stat()).size;
-    const content = try allocator.alloc(u8, file_size);
-    defer allocator.free(content);
+    const fd = try std.posix.openatZ(std.posix.AT.FDCWD, path_z, .{ .ACCMODE = .RDONLY }, 0);
+    defer std.posix.close(fd);
 
-    const bytes_read = try file.read(content);
-    const actual_content = content[0..bytes_read];
+    // Read file contents
+    var content_list = std.ArrayListUnmanaged(u8){};
+    defer content_list.deinit(allocator);
 
-    try parseJsonLines(allocator, actual_content, requests);
+    var buf: [8192]u8 = undefined;
+    while (true) {
+        const n = std.c.read(fd, &buf, buf.len);
+        if (n <= 0) break;
+        try content_list.appendSlice(allocator, buf[0..@intCast(n)]);
+    }
+
+    try parseJsonLines(allocator, content_list.items, requests);
 }
 
 fn readRequestsFromStdin(
     allocator: std.mem.Allocator,
-    requests: *std.ArrayList(manifest.RequestManifest),
+    requests: *std.ArrayListUnmanaged(manifest.RequestManifest),
 ) !void {
-    const stdin = std.fs.File.stdin();
+    // Read from stdin (fd 0)
+    var content_list = std.ArrayListUnmanaged(u8){};
+    defer content_list.deinit(allocator);
 
-    // Read stdin in chunks
-    var content = std.ArrayList(u8){};
-    defer content.deinit(allocator);
-
-    var buf: [4096]u8 = undefined;
+    var buf: [8192]u8 = undefined;
     while (true) {
-        const n = try stdin.read(&buf);
-        if (n == 0) break;
-        try content.appendSlice(allocator, buf[0..n]);
+        const n = std.c.read(0, &buf, buf.len);
+        if (n <= 0) break;
+        try content_list.appendSlice(allocator, buf[0..@intCast(n)]);
     }
 
-    try parseJsonLines(allocator, content.items, requests);
+    try parseJsonLines(allocator, content_list.items, requests);
 }
 
 fn parseJsonLines(
     allocator: std.mem.Allocator,
     content: []const u8,
-    requests: *std.ArrayList(manifest.RequestManifest),
+    requests: *std.ArrayListUnmanaged(manifest.RequestManifest),
 ) !void {
     var line_iter = std.mem.splitScalar(u8, content, '\n');
     var line_num: usize = 0;

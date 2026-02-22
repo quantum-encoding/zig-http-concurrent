@@ -6,6 +6,37 @@
 
 const std = @import("std");
 
+/// Simple mutex wrapper using pthread (Mutex removed in Zig 0.16)
+const Mutex = struct {
+    inner: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    pub fn lock(self: *Mutex) void {
+        _ = std.c.pthread_mutex_lock(&self.inner);
+    }
+
+    pub fn unlock(self: *Mutex) void {
+        _ = std.c.pthread_mutex_unlock(&self.inner);
+    }
+};
+
+/// Timestamp using clock_gettime (Instant removed in Zig 0.16)
+const Instant = struct {
+    ts: std.c.timespec,
+
+    pub fn now() error{}!Instant {
+        var ts: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &ts);
+        return Instant{ .ts = ts };
+    }
+
+    pub fn since(self: Instant, earlier: Instant) u64 {
+        const self_ns: i128 = @as(i128, self.ts.sec) * 1_000_000_000 + self.ts.nsec;
+        const earlier_ns: i128 = @as(i128, earlier.ts.sec) * 1_000_000_000 + earlier.ts.nsec;
+        const diff = self_ns - earlier_ns;
+        return if (diff > 0) @intCast(diff) else 0;
+    }
+};
+
 /// Enterprise-grade retry engine with exponential backoff and jitter
 /// Implements production-level resilience patterns for high-frequency trading
 
@@ -30,9 +61,9 @@ pub const CircuitBreaker = struct {
     state: CircuitState = .closed,
     failure_count: u32 = 0,
     success_count: u32 = 0,
-    last_failure_time: ?std.time.Instant = null,
+    last_failure_time: ?Instant = null,
     config: RetryConfig,
-    mutex: std.Thread.Mutex = .{},
+    mutex: Mutex = .{},
     
     pub fn init(config: RetryConfig) CircuitBreaker {
         return CircuitBreaker{
@@ -48,7 +79,7 @@ pub const CircuitBreaker = struct {
             .closed => return true,
             .open => {
                 if (self.last_failure_time) |last_failure| {
-                    const now = std.time.Instant.now() catch return false;
+                    const now = Instant.now() catch return false;
                     const elapsed_ns = now.since(last_failure);
                     const elapsed_ms = elapsed_ns / std.time.ns_per_ms;
                     if (elapsed_ms > self.config.circuit_recovery_timeout_ms) {
@@ -81,7 +112,7 @@ pub const CircuitBreaker = struct {
         defer self.mutex.unlock();
         
         self.failure_count += 1;
-        self.last_failure_time = std.time.Instant.now() catch null;
+        self.last_failure_time = Instant.now() catch null;
 
         if (self.failure_count >= self.config.circuit_failure_threshold) {
             self.state = .open;
@@ -100,12 +131,12 @@ pub const RetryEngine = struct {
         tokens: f64,
         max_tokens: f64,
         refill_rate: f64, // tokens per second
-        last_refill: std.time.Instant,
-        mutex: std.Thread.Mutex = .{},
+        last_refill: Instant,
+        mutex: Mutex = .{},
         
         pub fn init(max_requests_per_minute: u32) RateLimiter {
             const max_tokens = @as(f64, @floatFromInt(max_requests_per_minute));
-            const now = std.time.Instant.now() catch unreachable;
+            const now = Instant.now() catch unreachable;
             return RateLimiter{
                 .tokens = max_tokens,
                 .max_tokens = max_tokens,
@@ -143,7 +174,7 @@ pub const RetryEngine = struct {
         }
         
         fn refillTokens(self: *RateLimiter) void {
-            const now = std.time.Instant.now() catch return;
+            const now = Instant.now() catch return;
             const elapsed_ns = now.since(self.last_refill);
             const elapsed_seconds = @as(f64, @floatFromInt(elapsed_ns)) / @as(f64, std.time.ns_per_s);
 
@@ -258,9 +289,13 @@ pub const RetryEngine = struct {
         // Cap at max delay
         delay = @min(delay, @as(f64, @floatFromInt(self.config.max_delay_ms)));
         
-        // Add jitter to prevent thundering herd
+        // Add jitter to prevent thundering herd (cross-platform random)
         const jitter_range = delay * self.config.jitter_factor;
-        const jitter = (std.crypto.random.float(f64) - 0.5) * jitter_range;
+        var rand_bytes: [8]u8 = undefined;
+        std.c.arc4random_buf(&rand_bytes, rand_bytes.len);
+        const rand_u64 = std.mem.readInt(u64, &rand_bytes, .little);
+        const rand_frac = @as(f64, @floatFromInt(rand_u64)) / @as(f64, @floatFromInt(@as(u64, std.math.maxInt(u64))));
+        const jitter = (rand_frac - 0.5) * jitter_range;
         delay += jitter;
         
         return @max(1, @as(u64, @intFromFloat(delay)));

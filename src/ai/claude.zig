@@ -63,7 +63,7 @@ pub const ClaudeClient = struct {
     pub fn defaultConfig() common.RequestConfig {
         return .{
             .model = Models.SONNET_4_5,
-            .max_tokens = 8000,
+            .max_tokens = 65536,
             .temperature = 1.0,
         };
     }
@@ -72,7 +72,7 @@ pub const ClaudeClient = struct {
     pub fn fastConfig() common.RequestConfig {
         return .{
             .model = Models.HAIKU,
-            .max_tokens = 4096,
+            .max_tokens = 65536,
             .temperature = 1.0,
         };
     }
@@ -81,7 +81,7 @@ pub const ClaudeClient = struct {
     pub fn deepConfig() common.RequestConfig {
         return .{
             .model = Models.OPUS_4_1,
-            .max_tokens = 16000,
+            .max_tokens = 65536,
             .temperature = 1.0,
         };
     }
@@ -90,7 +90,7 @@ pub const ClaudeClient = struct {
 test "ClaudeClient initialization" {
     const allocator = std.testing.allocator;
 
-    var client = ClaudeClient.init(allocator, "test-key");
+    var client = try ClaudeClient.init(allocator, "test-key");
     defer client.deinit();
 
     try std.testing.expectEqualStrings("claude", client.client.provider_name);

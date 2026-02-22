@@ -10,13 +10,19 @@ const std = @import("std");
 const cli = @import("cli.zig");
 const batch = @import("batch.zig");
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    // Collect args into array for indexed access
+    var args_list = std.ArrayListUnmanaged([]const u8){};
+    defer args_list.deinit(allocator);
+    var args_iter = std.process.Args.Iterator.init(init.minimal.args);
+    while (args_iter.next()) |arg| {
+        try args_list.append(allocator, arg);
+    }
+    const args = args_list.items;
 
     // Parse arguments
     var config = cli.CLIConfig{};
@@ -187,7 +193,13 @@ pub fn main() !void {
 
     // Check if API key is set
     const env_var = config.provider.getEnvVar();
-    const has_key = std.process.hasEnvVar(allocator, env_var) catch false;
+    // Check if environment variable is set using std.c.getenv
+    const env_var_z = allocator.dupeZ(u8, env_var) catch {
+        std.debug.print("Error: Memory allocation failed\n", .{});
+        return error.OutOfMemory;
+    };
+    defer allocator.free(env_var_z);
+    const has_key = std.c.getenv(env_var_z) != null;
     if (!has_key) {
         std.debug.print("Error: {s} environment variable not set\n", .{env_var});
         std.debug.print("\n   Set it with:\n", .{});

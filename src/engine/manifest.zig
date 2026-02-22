@@ -133,6 +133,102 @@ pub const ResponseManifest = struct {
 
         try writer.writeAll("}\n");
     }
+
+    /// Serialize to JSON string (allocated)
+    pub fn toJsonString(self: *const ResponseManifest, allocator: std.mem.Allocator) ![]u8 {
+        var list = std.ArrayListUnmanaged(u8){};
+        errdefer list.deinit(allocator);
+
+        // Create a wrapper that writes to the array list
+        const ListWriter = struct {
+            list: *std.ArrayListUnmanaged(u8),
+            alloc: std.mem.Allocator,
+
+            pub fn writeAll(ctx: *@This(), data: []const u8) !void {
+                try ctx.list.appendSlice(ctx.alloc, data);
+            }
+
+            pub fn writeByte(ctx: *@This(), byte: u8) !void {
+                try ctx.list.append(ctx.alloc, byte);
+            }
+
+            pub fn print(ctx: *@This(), comptime fmt: []const u8, args: anytype) !void {
+                const str = try std.fmt.allocPrint(ctx.alloc, fmt, args);
+                defer ctx.alloc.free(str);
+                try ctx.list.appendSlice(ctx.alloc, str);
+            }
+        };
+        var writer = ListWriter{ .list = &list, .alloc = allocator };
+
+        try writer.writeAll("{");
+
+        // ID
+        try writer.writeAll("\"id\":\"");
+        try writer.writeAll(self.id);
+        try writer.writeAll("\",");
+
+        // Status
+        try writer.print("\"status\":{},", .{self.status});
+
+        // Latency
+        try writer.print("\"latency_ms\":{},", .{self.latency_ms});
+
+        // Retry count
+        try writer.print("\"retry_count\":{}", .{self.retry_count});
+
+        // Error message if present
+        if (self.error_message) |err_msg| {
+            try writer.writeAll(",\"error\":\"");
+            for (err_msg) |c| {
+                switch (c) {
+                    '"' => try writer.writeAll("\\\""),
+                    '\\' => try writer.writeAll("\\\\"),
+                    '\n' => try writer.writeAll("\\n"),
+                    '\r' => try writer.writeAll("\\r"),
+                    '\t' => try writer.writeAll("\\t"),
+                    else => {
+                        if (c < 0x20) {
+                            try writer.print("\\u{x:0>4}", .{c});
+                        } else {
+                            try writer.writeByte(c);
+                        }
+                    },
+                }
+            }
+            try writer.writeAll("\"");
+        }
+
+        // Body if present (truncated for large responses)
+        if (self.body) |body| {
+            try writer.writeAll(",\"body\":\"");
+            const max_body_len = 1000;
+            const body_to_write = if (body.len > max_body_len) body[0..max_body_len] else body;
+            for (body_to_write) |c| {
+                switch (c) {
+                    '"' => try writer.writeAll("\\\""),
+                    '\\' => try writer.writeAll("\\\\"),
+                    '\n' => try writer.writeAll("\\n"),
+                    '\r' => try writer.writeAll("\\r"),
+                    '\t' => try writer.writeAll("\\t"),
+                    else => {
+                        if (c < 0x20) {
+                            try writer.print("\\u{x:0>4}", .{c});
+                        } else {
+                            try writer.writeByte(c);
+                        }
+                    },
+                }
+            }
+            if (body.len > max_body_len) {
+                try writer.writeAll("... (truncated)");
+            }
+            try writer.writeAll("\"");
+        }
+
+        try writer.writeAll("}\n");
+
+        return list.toOwnedSlice(allocator);
+    }
 };
 
 /// HTTP methods supported

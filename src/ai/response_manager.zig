@@ -10,12 +10,32 @@
 const std = @import("std");
 const common = @import("common.zig");
 
+/// Simple mutex wrapper using pthread (Mutex removed in Zig 0.16)
+const Mutex = struct {
+    inner: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    pub fn lock(self: *Mutex) void {
+        _ = std.c.pthread_mutex_lock(&self.inner);
+    }
+
+    pub fn unlock(self: *Mutex) void {
+        _ = std.c.pthread_mutex_unlock(&self.inner);
+    }
+};
+
+/// Get current Unix timestamp in seconds (REALTIME clock)
+fn getCurrentTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.REALTIME, &ts);
+    return ts.sec;
+}
+
 /// Thread-safe response storage and management
 pub const ResponseManager = struct {
     allocator: std.mem.Allocator,
     responses: std.ArrayList(StoredResponse),
     conversations: std.StringHashMap(ConversationData),
-    mutex: std.Thread.Mutex = .{},
+    mutex: Mutex = .{},
 
     pub fn init(allocator: std.mem.Allocator) ResponseManager {
         return .{
@@ -193,7 +213,7 @@ pub const StoredResponse = struct {
         return .{
             .id = try common.generateId(allocator),
             .conversation_id = try allocator.dupe(u8, conversation_id),
-            .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
+            .timestamp = getCurrentTimestamp(),
             .request = try request.clone(allocator),
             .response = response, // Ownership transferred
             .allocator = allocator,
@@ -323,7 +343,7 @@ test "ResponseManager basic operations" {
             .id = try allocator.dupe(u8, "msg-1"),
             .role = .assistant,
             .content = try allocator.dupe(u8, "Hi there!"),
-            .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
+            .timestamp = getCurrentTimestamp(),
             .allocator = allocator,
         },
         .usage = .{

@@ -32,6 +32,7 @@ pub const ClaudeClient = @import("ai/claude.zig").ClaudeClient;
 pub const DeepSeekClient = @import("ai/deepseek.zig").DeepSeekClient;
 pub const GeminiClient = @import("ai/gemini.zig").GeminiClient;
 pub const GrokClient = @import("ai/grok.zig").GrokClient;
+pub const OpenAIClient = @import("ai/openai.zig").OpenAIClient;
 pub const VertexClient = @import("ai/vertex.zig").VertexClient;
 
 // Re-export commonly used types
@@ -48,6 +49,7 @@ pub const Provider = enum {
     deepseek,
     gemini,
     grok,
+    openai,
     vertex,
 
     pub fn toString(self: Provider) []const u8 {
@@ -56,6 +58,7 @@ pub const Provider = enum {
             .deepseek => "deepseek",
             .gemini => "gemini",
             .grok => "grok",
+            .openai => "openai",
             .vertex => "vertex",
         };
     }
@@ -68,11 +71,12 @@ pub const AIClient = struct {
     deepseek: ?DeepSeekClient = null,
     gemini: ?GeminiClient = null,
     grok: ?GrokClient = null,
+    openai: ?OpenAIClient = null,
     vertex: ?VertexClient = null,
     allocator: std.mem.Allocator,
 
     /// Initialize client for a specific provider
-    pub fn init(allocator: std.mem.Allocator, provider: Provider, config: ProviderConfig) AIClient {
+    pub fn init(allocator: std.mem.Allocator, provider: Provider, config: ProviderConfig) !AIClient {
         var client = AIClient{
             .provider = provider,
             .allocator = allocator,
@@ -80,19 +84,22 @@ pub const AIClient = struct {
 
         switch (provider) {
             .claude => {
-                client.claude = ClaudeClient.init(allocator, config.api_key.?);
+                client.claude = try ClaudeClient.init(allocator, config.api_key.?);
             },
             .deepseek => {
-                client.deepseek = DeepSeekClient.init(allocator, config.api_key.?);
+                client.deepseek = try DeepSeekClient.init(allocator, config.api_key.?);
             },
             .gemini => {
-                client.gemini = GeminiClient.init(allocator, config.api_key.?);
+                client.gemini = try GeminiClient.init(allocator, config.api_key.?);
             },
             .grok => {
-                client.grok = GrokClient.init(allocator, config.api_key.?);
+                client.grok = try GrokClient.init(allocator, config.api_key.?);
+            },
+            .openai => {
+                client.openai = try OpenAIClient.init(allocator, config.api_key.?);
             },
             .vertex => {
-                client.vertex = VertexClient.init(allocator, .{
+                client.vertex = try VertexClient.init(allocator, .{
                     .project_id = config.project_id.?,
                     .location = config.location orelse "us-central1",
                 });
@@ -108,6 +115,7 @@ pub const AIClient = struct {
             .deepseek => if (self.deepseek) |*c| c.deinit(),
             .gemini => if (self.gemini) |*c| c.deinit(),
             .grok => if (self.grok) |*c| c.deinit(),
+            .openai => if (self.openai) |*c| c.deinit(),
             .vertex => if (self.vertex) |*c| c.deinit(),
         }
     }
@@ -123,6 +131,7 @@ pub const AIClient = struct {
             .deepseek => self.deepseek.?.sendMessage(prompt, config),
             .gemini => self.gemini.?.sendMessage(prompt, config),
             .grok => self.grok.?.sendMessage(prompt, config),
+            .openai => self.openai.?.sendMessage(prompt, config),
             .vertex => self.vertex.?.sendMessage(prompt, config),
         };
     }
@@ -139,6 +148,7 @@ pub const AIClient = struct {
             .deepseek => self.deepseek.?.sendMessageWithContext(prompt, context, config),
             .gemini => self.gemini.?.sendMessageWithContext(prompt, context, config),
             .grok => self.grok.?.sendMessageWithContext(prompt, context, config),
+            .openai => self.openai.?.sendMessageWithContext(prompt, context, config),
             .vertex => self.vertex.?.sendMessageWithContext(prompt, context, config),
         };
     }
@@ -156,12 +166,19 @@ pub const ProviderConfig = struct {
     location: ?[]const u8 = null,
 };
 
-/// Get API key from environment variable
+/// Get API key from environment variable (Zig 0.16 compatible)
 pub fn getApiKeyFromEnv(allocator: std.mem.Allocator, var_name: []const u8) ![]const u8 {
-    return std.process.getEnvVarOwned(allocator, var_name) catch |err| {
-        std.debug.print("Error: Environment variable '{s}' not set\n", .{var_name});
-        return err;
+    const key_z = allocator.dupeZ(u8, var_name) catch {
+        std.debug.print("Error: Memory allocation failed\n", .{});
+        return error.OutOfMemory;
     };
+    defer allocator.free(key_z);
+    const ptr = std.c.getenv(key_z) orelse {
+        std.debug.print("Error: Environment variable '{s}' not set\n", .{var_name});
+        return error.EnvironmentVariableNotFound;
+    };
+    const len = std.mem.len(ptr);
+    return try allocator.dupe(u8, ptr[0..len]);
 }
 
 /// Pricing information for all providers (as of 2025)
@@ -199,7 +216,7 @@ pub const Pricing = struct {
 test "AIClient initialization" {
     const allocator = std.testing.allocator;
 
-    var client = AIClient.init(allocator, .deepseek, .{
+    var client = try AIClient.init(allocator, .deepseek, .{
         .api_key = "test-key",
     });
     defer client.deinit();

@@ -1,11 +1,15 @@
 # Zig HTTP Sentinel
 
-A production-grade HTTP client library for Zig **0.16.0-dev.1303+**, extracted from high-frequency trading systems.
+A production-grade HTTP client library for Zig **0.16.0**, extracted from high-frequency trading systems. Actively maintained and updated with each new Zig release.
 
 > **Built on Modern Zig**: Uses `std.Io.Threaded` architecture for true thread-safe concurrent operations
 
 **Developed by [QUANTUM ENCODING LTD](https://quantumencoding.io)**
-Contact: [rich@quantumencoding.io](mailto:rich@quantumencoding.io)
+Contact: [info@quantumencoding.io](mailto:info@quantumencoding.io)
+
+> Currently tested against Zig `0.16.0-dev.2565+`
+>
+> Part of [quantum-zig-forge](https://github.com/quantum-encoding/quantum-zig-forge) — our main development monorepo for all Zig programs and libraries.
 
 ---
 
@@ -18,6 +22,10 @@ Contact: [rich@quantumencoding.io](mailto:rich@quantumencoding.io)
 - **Automatic GZIP Decompression**: Transparent handling of compressed responses
 - **Configurable**: Request options for timeouts and body size limits
 - **Production-Tested**: Running in live trading systems handling thousands of requests/second
+- **Multi-Provider AI Clients**: Anthropic Claude, OpenAI, DeepSeek, Google Gemini, Grok, Vertex AI
+- **Audio Support**: Text-to-Speech and Speech-to-Text via OpenAI and Google
+- **Batch Processing**: CSV-based concurrent request execution (up to 200 parallel)
+- **Resilience Engine**: Exponential backoff, circuit breaker, rate limiting
 
 ---
 
@@ -30,7 +38,7 @@ Add to your `build.zig.zon`:
 ```zig
 .dependencies = .{
     .http_sentinel = .{
-        .url = "https://github.com/YOUR_USERNAME/zig-http-sentinel/archive/refs/tags/v1.0.0.tar.gz",
+        .url = "https://github.com/quantum-encoding/zig-http-concurrent/archive/refs/tags/v1.0.0.tar.gz",
         .hash = "YOUR_HASH_HERE",
     },
 },
@@ -431,7 +439,7 @@ Per-request: 100KB-10MB
 
 ### Requirements
 
-- **Zig Version**: 0.16.0-dev.1303+ (run `zig version` to check)
+- **Zig Version**: 0.16.0-dev.2565+ (run `zig version` to check)
 - **OS**: Linux, macOS, Windows (TLS support required)
 - **Memory**: ~2-4MB per concurrent worker thread
 - **Network**: HTTPS/TLS support enabled
@@ -549,10 +557,12 @@ var response = try client.get(url, headers);  // Type error
 
 ## Documentation
 
-- **[MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md)** - Complete implementation patterns for Zig 0.16
+- **[MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md)** - Implementation patterns for Zig 0.16
 - **[examples/](examples/)** - Working code examples
-- **[src/http_client.zig](src/http_client.zig)** - Core implementation
-- **API Docs**: Run `zig build-lib src/lib.zig -femit-docs` for generated documentation
+- **[src/http_client.zig](src/http_client.zig)** - Core HTTP client implementation
+- **[src/ai/](src/ai/)** - AI provider clients (Claude, OpenAI, DeepSeek, Gemini, Grok, Vertex)
+- **[src/audio/](src/audio/)** - Audio TTS/STT support
+- **[src/batch/](src/batch/)** - Batch processing engine
 
 ---
 
@@ -564,7 +574,7 @@ Contributions welcome! Please ensure:
 2. Code follows Zig style conventions
 3. New features include tests and examples
 4. Documentation updated
-5. Runs on Zig 0.16.0-dev.1303+
+5. Runs on Zig 0.16.0+
 
 ---
 
@@ -573,9 +583,9 @@ Contributions welcome! Please ensure:
 MIT License - See LICENSE file for details
 
 ```
-Copyright © 2025 QUANTUM ENCODING LTD
+Copyright © 2025-2026 QUANTUM ENCODING LTD
 Website: https://quantumencoding.io
-Contact: rich@quantumencoding.io
+Contact: info@quantumencoding.io
 ```
 
 ---
@@ -590,8 +600,8 @@ The `std.Io.Threaded` architecture is a fundamental shift in how HTTP clients wo
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/zig-http-sentinel/issues)
-- **Email**: [rich@quantumencoding.io](mailto:rich@quantumencoding.io)
+- **Issues**: [GitHub Issues](https://github.com/quantum-encoding/zig-http-concurrent/issues)
+- **Email**: [info@quantumencoding.io](mailto:info@quantumencoding.io)
 - **Docs**: [MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md)
 
 Built with ❤️ for the Zig community by QUANTUM ENCODING LTD

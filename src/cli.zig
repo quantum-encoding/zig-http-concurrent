@@ -18,8 +18,24 @@
 //!   zig-ai gemini --temp 0.5 "Explain async/await"
 
 const std = @import("std");
+
+/// Get current Unix timestamp in seconds (REALTIME clock)
+fn getCurrentTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.REALTIME, &ts);
+    return ts.sec;
+}
 const ai = @import("ai.zig");
 const model_costs = @import("model_costs.zig");
+
+/// Get environment variable as owned slice (Zig 0.16 compatible)
+fn getEnvVarOwned(allocator: std.mem.Allocator, key: []const u8) ![]u8 {
+    const key_z = try allocator.dupeZ(u8, key);
+    defer allocator.free(key_z);
+    const ptr = std.c.getenv(key_z) orelse return error.EnvironmentVariableNotFound;
+    const len = std.mem.len(ptr);
+    return try allocator.dupe(u8, ptr[0..len]);
+}
 
 pub const CLIConfig = struct {
     provider: Provider = .deepseek,
@@ -72,7 +88,7 @@ pub const Provider = enum {
         return switch (self) {
             .claude => "ANTHROPIC_API_KEY",
             .deepseek => "DEEPSEEK_API_KEY",
-            .gemini => "GOOGLE_GENAI_API_KEY",
+            .gemini => "GEMINI_API_KEY",
             .grok => "XAI_API_KEY",
             .vertex => "VERTEX_PROJECT_ID",
         };
@@ -155,13 +171,13 @@ pub const CLI = struct {
         var io_threaded = std.Io.Threaded.init_single_threaded;
         const io = io_threaded.io();
 
-        const stdin_file = std.fs.File.stdin();
+        const stdin_file = std.Io.File.stdin();
         var stdin_buffer: [256]u8 = undefined;
         var stdin_reader = stdin_file.reader(io, &stdin_buffer);
 
-        const stdout_file = std.fs.File.stdout();
+        const stdout_file = std.Io.File.stdout();
         var stdout_buffer: [256]u8 = undefined;
-        var stdout_writer = stdout_file.writer(&stdout_buffer);
+        var stdout_writer = stdout_file.writer(io, &stdout_buffer);
 
         while (true) {
             try stdout_writer.interface.writeAll("\n👤 You: ");
@@ -238,7 +254,7 @@ pub const CLI = struct {
                 .id = try ai.common.generateId(self.allocator),
                 .role = .user,
                 .content = try self.allocator.dupe(u8, trimmed),
-                .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
+                .timestamp = getCurrentTimestamp(),
                 .allocator = self.allocator,
             };
             try conversation.addMessage(user_msg);
@@ -273,7 +289,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const api_key = try std.process.getEnvVarOwned(self.allocator, "ANTHROPIC_API_KEY");
+        const api_key = try getEnvVarOwned(self.allocator, "ANTHROPIC_API_KEY");
         defer self.allocator.free(api_key);
 
         var client = try ai.ClaudeClient.init(self.allocator, api_key);
@@ -297,7 +313,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const api_key = try std.process.getEnvVarOwned(self.allocator, "DEEPSEEK_API_KEY");
+        const api_key = try getEnvVarOwned(self.allocator, "DEEPSEEK_API_KEY");
         defer self.allocator.free(api_key);
 
         var client = try ai.DeepSeekClient.init(self.allocator, api_key);
@@ -321,7 +337,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const api_key = try std.process.getEnvVarOwned(self.allocator, "GOOGLE_GENAI_API_KEY");
+        const api_key = getEnvVarOwned(self.allocator, "GEMINI_API_KEY") catch try getEnvVarOwned(self.allocator, "GOOGLE_GENAI_API_KEY");
         defer self.allocator.free(api_key);
 
         var client = try ai.GeminiClient.init(self.allocator, api_key);
@@ -345,7 +361,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const api_key = try std.process.getEnvVarOwned(self.allocator, "XAI_API_KEY");
+        const api_key = try getEnvVarOwned(self.allocator, "XAI_API_KEY");
         defer self.allocator.free(api_key);
 
         var client = try ai.GrokClient.init(self.allocator, api_key);
@@ -369,7 +385,7 @@ pub const CLI = struct {
         context: ?[]const ai.AIMessage,
         base_config: ai.common.RequestConfig,
     ) !ai.AIResponse {
-        const project_id = try std.process.getEnvVarOwned(self.allocator, "VERTEX_PROJECT_ID");
+        const project_id = try getEnvVarOwned(self.allocator, "VERTEX_PROJECT_ID");
         defer self.allocator.free(project_id);
 
         var client = try ai.VertexClient.init(self.allocator, .{ .project_id = project_id });

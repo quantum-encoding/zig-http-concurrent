@@ -12,6 +12,39 @@ const HttpClient = @import("../http_client.zig").HttpClient;
 const RetryEngine = @import("../retry/retry.zig").RetryEngine;
 const manifest = @import("manifest.zig");
 
+/// Simple mutex wrapper using pthread (std.Thread.Mutex removed in Zig 0.16)
+const Mutex = struct {
+    inner: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    pub fn lock(self: *Mutex) void {
+        _ = std.c.pthread_mutex_lock(&self.inner);
+    }
+
+    pub fn unlock(self: *Mutex) void {
+        _ = std.c.pthread_mutex_unlock(&self.inner);
+    }
+};
+
+/// Timer using clock_gettime (Timer removed in Zig 0.16)
+const Timer = struct {
+    start_ts: std.c.timespec,
+
+    pub fn start() error{}!Timer {
+        var ts: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &ts);
+        return Timer{ .start_ts = ts };
+    }
+
+    pub fn read(self: *const Timer) u64 {
+        var now: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &now);
+        const start_ns: i128 = @as(i128, self.start_ts.sec) * 1_000_000_000 + self.start_ts.nsec;
+        const now_ns: i128 = @as(i128, now.sec) * 1_000_000_000 + now.nsec;
+        const diff = now_ns - start_ns;
+        return if (diff > 0) @intCast(diff) else 0;
+    }
+};
+
 pub const EngineConfig = struct {
     /// Maximum concurrent requests
     max_concurrency: u32 = 50,
@@ -35,7 +68,7 @@ pub fn Engine(comptime WriterType: type) type {
         output_writer: WriterType,
 
         /// Mutex for synchronized output
-        output_mutex: std.Thread.Mutex,
+        output_mutex: Mutex,
 
         pub fn init(allocator: std.mem.Allocator, config: EngineConfig, output_writer: WriterType) !Self {
             return Self{
@@ -85,7 +118,7 @@ pub fn Engine(comptime WriterType: type) type {
 
         /// Process a single request
         fn processRequest(self: *Self, request: *manifest.RequestManifest) void {
-            var timer = std.time.Timer.start() catch unreachable;
+            var timer = Timer.start() catch unreachable;
 
             // Create thread-local HTTP client
             var http_client = HttpClient.init(self.allocator) catch {
@@ -126,7 +159,11 @@ pub fn Engine(comptime WriterType: type) type {
                         // Calculate exponential backoff
                         const backoff_ms = @as(u64, 100) * (@as(u64, 1) << @intCast(retry_count));
                         const backoff_ns = backoff_ms * std.time.ns_per_ms;
-                        std.posix.nanosleep(0, backoff_ns);
+                        const ts: std.c.timespec = .{
+                            .sec = @intCast(backoff_ns / std.time.ns_per_s),
+                            .nsec = @intCast(backoff_ns % std.time.ns_per_s),
+                        };
+                        _ = std.c.nanosleep(&ts, null);
                         continue;
                     } else {
                         // Final failure
@@ -187,12 +224,16 @@ pub fn Engine(comptime WriterType: type) type {
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
-            response.toJson(&self.output_writer.interface) catch |err| {
+            // Format response as JSON and write to output
+            const json = response.toJsonString(self.allocator) catch |err| {
+                std.debug.print("Error formatting response: {}\n", .{err});
+                return;
+            };
+            defer self.allocator.free(json);
+
+            _ = self.output_writer.write(json) catch |err| {
                 std.debug.print("Error writing response: {}\n", .{err});
             };
-
-            // Flush immediately
-            std.Io.Writer.flush(&self.output_writer.interface) catch {};
         }
 
         /// Write error to output (thread-safe)
@@ -200,11 +241,14 @@ pub fn Engine(comptime WriterType: type) type {
             self.output_mutex.lock();
             defer self.output_mutex.unlock();
 
-            std.Io.Writer.print(
-                &self.output_writer.interface,
+            const json = std.fmt.allocPrint(
+                self.allocator,
                 "{{\"id\":\"{s}\",\"status\":0,\"error\":\"{s}\"}}\n",
                 .{ id, error_message },
-            ) catch {};
+            ) catch return;
+            defer self.allocator.free(json);
+
+            _ = self.output_writer.write(json) catch {};
         }
     };
 }

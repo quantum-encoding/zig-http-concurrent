@@ -9,6 +9,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/lib.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
 
     // Tests
@@ -34,6 +35,7 @@ pub fn build(b: *std.Build) void {
                 .root_source_file = builder.path(src),
                 .target = tgt,
                 .optimize = opt,
+                .link_libc = true,
             });
             exe_module.addImport("http-sentinel", module);
 
@@ -45,34 +47,6 @@ pub fn build(b: *std.Build) void {
             return exe;
         }
     }.call;
-
-    // Build all examples
-    const basic = addExample(b, "basic", "examples/basic.zig", target, optimize, http_sentinel_module);
-    const run_basic = b.addRunArtifact(basic);
-    const basic_step = b.step("run-basic", "Run basic HTTP client example");
-    basic_step.dependOn(&run_basic.step);
-
-    const concurrent = addExample(b, "concurrent", "examples/concurrent_requests.zig", target, optimize, http_sentinel_module);
-    const run_concurrent = b.addRunArtifact(concurrent);
-    const concurrent_step = b.step("run-concurrent", "Run concurrent requests example");
-    concurrent_step.dependOn(&run_concurrent.step);
-
-    const anthropic = addExample(b, "anthropic", "examples/anthropic_client.zig", target, optimize, http_sentinel_module);
-    const run_anthropic = b.addRunArtifact(anthropic);
-    const anthropic_step = b.step("run-anthropic", "Run Anthropic client example");
-    anthropic_step.dependOn(&run_anthropic.step);
-
-    // AI Providers Demo
-    const ai_demo = addExample(b, "ai_providers_demo", "examples/ai_providers_demo.zig", target, optimize, http_sentinel_module);
-    const run_ai_demo = b.addRunArtifact(ai_demo);
-    const ai_demo_step = b.step("ai-demo", "Run AI providers demonstration (all 5 providers)");
-    ai_demo_step.dependOn(&run_ai_demo.step);
-
-    // AI Conversation Example
-    const ai_conversation = addExample(b, "ai_conversation", "examples/ai_conversation.zig", target, optimize, http_sentinel_module);
-    const run_ai_conversation = b.addRunArtifact(ai_conversation);
-    const ai_conversation_step = b.step("ai-conversation", "Run AI conversation example");
-    ai_conversation_step.dependOn(&run_ai_conversation.step);
 
     // CLI Tool
     const cli = addExample(b, "zig-ai", "src/main.zig", target, optimize, http_sentinel_module);

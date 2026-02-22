@@ -1,4 +1,0 @@
-provider,prompt,temperature,max_tokens,system_prompt
-deepseek,"What is Zig in one sentence?",1.0,256,
-deepseek,"What is the capital of France?",1.0,128,
-deepseek,"Write a haiku about programming",1.5,256,

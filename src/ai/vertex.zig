@@ -12,6 +12,33 @@
 //! - gcloud auth application-default login
 
 const std = @import("std");
+
+/// Timer using clock_gettime (Timer removed in Zig 0.16)
+const Timer = struct {
+    start_ts: std.c.timespec,
+
+    pub fn start() error{}!Timer {
+        var ts: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &ts);
+        return Timer{ .start_ts = ts };
+    }
+
+    pub fn read(self: *const Timer) u64 {
+        var now: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(.MONOTONIC, &now);
+        const start_ns: i128 = @as(i128, self.start_ts.sec) * 1_000_000_000 + self.start_ts.nsec;
+        const now_ns: i128 = @as(i128, now.sec) * 1_000_000_000 + now.nsec;
+        const diff = now_ns - start_ns;
+        return if (diff > 0) @intCast(diff) else 0;
+    }
+};
+
+/// Get current Unix timestamp in seconds (REALTIME clock)
+fn getCurrentTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.REALTIME, &ts);
+    return ts.sec;
+}
 const HttpClient = @import("../http_client.zig").HttpClient;
 const common = @import("common.zig");
 
@@ -54,30 +81,25 @@ pub const VertexClient = struct {
         self.http_client.deinit();
     }
 
-    /// Get OAuth2 access token from gcloud CLI
+    /// Get OAuth2 access token from environment variable
+    /// Set via: export GCLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token)
     fn getAccessToken(self: *VertexClient) ![]const u8 {
         // Check if we have a cached token
         if (self.access_token) |token| {
             return token;
         }
 
-        // Execute: gcloud auth print-access-token
-        const result = try std.process.Child.run(.{
-            .allocator = self.allocator,
-            .argv = &[_][]const u8{ "gcloud", "auth", "print-access-token" },
-        });
-        defer self.allocator.free(result.stdout);
-        defer self.allocator.free(result.stderr);
-
-        if (result.term.Exited != 0) {
-            std.debug.print("gcloud error: {s}\n", .{result.stderr});
-            return common.AIError.AuthenticationFailed;
+        // Require GCLOUD_ACCESS_TOKEN environment variable
+        if (std.c.getenv("GCLOUD_ACCESS_TOKEN")) |ptr| {
+            const len = std.mem.len(ptr);
+            self.access_token = try self.allocator.dupe(u8, ptr[0..len]);
+            return self.access_token.?;
         }
 
-        // Trim newline and cache token
-        const token = std.mem.trim(u8, result.stdout, &std.ascii.whitespace);
-        self.access_token = try self.allocator.dupe(u8, token);
-        return self.access_token.?;
+        std.debug.print("Error: GCLOUD_ACCESS_TOKEN environment variable not set\n", .{});
+        std.debug.print("\nSet it with:\n", .{});
+        std.debug.print("  export GCLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token)\n\n", .{});
+        return common.AIError.AuthenticationFailed;
     }
 
     /// Send a single message
@@ -96,7 +118,7 @@ pub const VertexClient = struct {
         context: []const common.AIMessage,
         config: common.RequestConfig,
     ) !common.AIResponse {
-        var timer = std.time.Timer.start() catch unreachable;
+        var timer = Timer.start() catch unreachable;
 
         // Get access token
         const token = try self.getAccessToken();
@@ -176,8 +198,64 @@ pub const VertexClient = struct {
             }
 
             if (has_function_call) {
-                // TODO: Implement function calling support
-                return common.AIError.ToolExecutionFailed;
+                // Extract function call details from response
+                var func_result = std.ArrayList(u8){};
+                defer func_result.deinit(self.allocator);
+
+                for (parts.array.items) |part| {
+                    if (part.object.get("functionCall")) |fc| {
+                        const func_name = if (fc.object.get("name")) |n| n.string else "unknown";
+                        // Build a text representation of the function call for the response
+                        // In production, this would dispatch to actual tool implementations
+                        if (func_result.items.len > 0) {
+                            try func_result.appendSlice(self.allocator, "\n");
+                        }
+                        try func_result.appendSlice(self.allocator, "[Function call: ");
+                        try func_result.appendSlice(self.allocator, func_name);
+
+                        // Include arguments if available
+                        if (fc.object.get("args")) |args| {
+                            try func_result.appendSlice(self.allocator, "(");
+                            // Serialize args object keys as parameter hints
+                            var args_iter = args.object.iterator();
+                            var first = true;
+                            while (args_iter.next()) |entry| {
+                                if (!first) try func_result.appendSlice(self.allocator, ", ");
+                                first = false;
+                                try func_result.appendSlice(self.allocator, entry.key_ptr.*);
+                                try func_result.appendSlice(self.allocator, "=...");
+                            }
+                            try func_result.appendSlice(self.allocator, ")");
+                        }
+
+                        try func_result.appendSlice(self.allocator, "]");
+                    }
+                }
+
+                // If we only have function calls with no text, return the function call description
+                if (func_result.items.len > 0) {
+                    const elapsed_ns = timer.read();
+                    return common.AIResponse{
+                        .message = .{
+                            .id = try common.generateId(self.allocator),
+                            .role = .assistant,
+                            .content = try func_result.toOwnedSlice(self.allocator),
+                            .timestamp = getCurrentTimestamp(),
+                            .allocator = self.allocator,
+                        },
+                        .usage = .{
+                            .input_tokens = 0,
+                            .output_tokens = total_tokens,
+                        },
+                        .metadata = .{
+                            .model = try self.allocator.dupe(u8, config.model),
+                            .provider = try self.allocator.dupe(u8, "vertex"),
+                            .turns_used = turn_count + 1,
+                            .execution_time_ms = @intCast(elapsed_ns / std.time.ns_per_ms),
+                            .allocator = self.allocator,
+                        },
+                    };
+                }
             }
 
             // Extract text response
@@ -204,7 +282,7 @@ pub const VertexClient = struct {
                     .id = try common.generateId(self.allocator),
                     .role = .assistant,
                     .content = try text_content.toOwnedSlice(self.allocator),
-                    .timestamp = (std.posix.clock_gettime(std.posix.CLOCK.REALTIME) catch unreachable).sec,
+                    .timestamp = getCurrentTimestamp(),
                     .allocator = self.allocator,
                 },
                 .usage = .{
@@ -332,7 +410,7 @@ pub const VertexClient = struct {
     pub fn defaultConfig() common.RequestConfig {
         return .{
             .model = Models.GEMINI_PRO_2_5,
-            .max_tokens = 4096,
+            .max_tokens = 65536,
             .temperature = 0.7,
         };
     }
@@ -341,7 +419,7 @@ pub const VertexClient = struct {
     pub fn fastConfig() common.RequestConfig {
         return .{
             .model = Models.GEMINI_FLASH_2_5,
-            .max_tokens = 4096,
+            .max_tokens = 65536,
             .temperature = 0.7,
         };
     }
@@ -350,7 +428,7 @@ pub const VertexClient = struct {
 test "VertexClient initialization" {
     const allocator = std.testing.allocator;
 
-    var client = VertexClient.init(allocator, .{
+    var client = try VertexClient.init(allocator, .{
         .project_id = "test-project",
         .location = "us-central1",
     });
