@@ -20,27 +20,20 @@ pub const ParseError = error{
     UnexpectedEndOfFile,
 };
 
-/// Parse CSV file into BatchRequest array
+/// Parse CSV file into BatchRequest array (pure Zig — no libc)
 pub fn parseFile(allocator: std.mem.Allocator, file_path: []const u8) ![]types.BatchRequest {
-    // Read file using posix API
-    const path_z = try allocator.dupeZ(u8, file_path);
-    defer allocator.free(path_z);
+    // Read file using Io.Dir APIs
+    var io_threaded: std.Io.Threaded = .init(allocator, .{});
+    defer io_threaded.deinit();
+    const io = io_threaded.io();
 
-    const fd = try std.posix.openatZ(std.posix.AT.FDCWD, path_z, .{ .ACCMODE = .RDONLY }, 0);
-    defer std.posix.close(fd);
+    const dir_path = std.fs.path.dirname(file_path) orelse ".";
+    const file_name = std.fs.path.basename(file_path);
 
-    // Read file contents
-    var content_list = std.ArrayListUnmanaged(u8){};
-    defer content_list.deinit(allocator);
+    var dir = try std.Io.Dir.openDirAbsolute(io, dir_path, .{});
+    defer dir.close(io);
 
-    var buf: [8192]u8 = undefined;
-    while (true) {
-        const n = std.c.read(fd, &buf, buf.len);
-        if (n <= 0) break;
-        try content_list.appendSlice(allocator, buf[0..@intCast(n)]);
-    }
-
-    const content = try allocator.dupe(u8, content_list.items);
+    const content = try dir.readFileAlloc(io, file_name, allocator, .unlimited);
     defer allocator.free(content);
 
     return try parseContent(allocator, content);
@@ -48,7 +41,7 @@ pub fn parseFile(allocator: std.mem.Allocator, file_path: []const u8) ![]types.B
 
 /// Parse CSV content string
 pub fn parseContent(allocator: std.mem.Allocator, content: []const u8) ![]types.BatchRequest {
-    var requests = std.ArrayList(types.BatchRequest){};
+    var requests: std.ArrayList(types.BatchRequest) = .empty;
     errdefer {
         for (requests.items) |*req| {
             req.deinit();
@@ -87,7 +80,7 @@ pub fn parseContent(allocator: std.mem.Allocator, content: []const u8) ![]types.
 
 /// Parse CSV header row
 fn parseHeader(allocator: std.mem.Allocator, header_line: []const u8) ![][]const u8 {
-    var headers = std.ArrayList([]const u8){};
+    var headers: std.ArrayList([]const u8) = .empty;
     errdefer headers.deinit(allocator);
 
     const fields = try parseFields(allocator, header_line);
@@ -193,13 +186,13 @@ fn parseRow(
 
 /// Parse CSV fields, handling quoted strings
 fn parseFields(allocator: std.mem.Allocator, line: []const u8) ![][]const u8 {
-    var fields = std.ArrayList([]const u8){};
+    var fields: std.ArrayList([]const u8) = .empty;
     errdefer {
         for (fields.items) |field| allocator.free(field);
         fields.deinit(allocator);
     }
 
-    var field = std.ArrayList(u8){};
+    var field: std.ArrayList(u8) = .empty;
     defer field.deinit(allocator);
 
     var in_quotes = false;
@@ -220,7 +213,7 @@ fn parseFields(allocator: std.mem.Allocator, line: []const u8) ![][]const u8 {
         } else if (c == ',' and !in_quotes) {
             // End of field
             try fields.append(allocator, try field.toOwnedSlice(allocator));
-            field = std.ArrayList(u8){};
+            field = std.ArrayList(u8).empty;
         } else {
             try field.append(allocator, c);
         }

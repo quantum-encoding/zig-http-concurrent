@@ -1,13 +1,13 @@
 # Zig HTTP Sentinel
 
-A production-grade HTTP client library for Zig **0.16.0**, extracted from high-frequency trading systems. Actively maintained and updated with each new Zig release.
+A production-grade, **pure Zig** HTTP client library for Zig **0.16.0** — zero libc, zero `extern "c"`, zero `@cImport`. Extracted from high-frequency trading systems. Actively maintained and updated with each new Zig release.
 
-> **Built on Modern Zig**: Uses `std.Io.Threaded` architecture for true thread-safe concurrent operations
+> **Pure Zig**: Uses `std.Io.Threaded` architecture throughout. No C dependencies. Runs on any Zig target including freestanding OS kernels.
 
 **Developed by [QUANTUM ENCODING LTD](https://quantumencoding.io)**
 Contact: [info@quantumencoding.io](mailto:info@quantumencoding.io)
 
-> Currently tested against Zig `0.16.0-dev.2565+`
+> Currently tested against Zig `0.16.0-dev.3091+`
 >
 > Part of [quantum-zig-forge](https://github.com/quantum-encoding/quantum-zig-forge) — our main development monorepo for all Zig programs and libraries.
 
@@ -15,17 +15,33 @@ Contact: [info@quantumencoding.io](mailto:info@quantumencoding.io)
 
 ## Features
 
+- **Pure Zig**: Zero `extern "c"`, zero `std.c.*`, zero `@cImport` — `link_libc = false`
 - **Modern Zig Architecture**: Built on `std.Io.Threaded` for reliable concurrent operations
-- **Client-Per-Worker Pattern**: Each thread owns its HTTP client - zero contention, true parallelism
+- **Client-Per-Worker Pattern**: Each thread owns its HTTP client — zero contention, true parallelism
 - **Memory-Safe**: RAII-style cleanup with explicit ownership
 - **Full HTTP Support**: GET, POST, PUT, PATCH, DELETE, HEAD methods
 - **Automatic GZIP Decompression**: Transparent handling of compressed responses
 - **Configurable**: Request options for timeouts and body size limits
 - **Production-Tested**: Running in live trading systems handling thousands of requests/second
 - **Multi-Provider AI Clients**: Anthropic Claude, OpenAI, DeepSeek, Google Gemini, Grok, Vertex AI
+- **Media Generation**: ElevenLabs, HeyGen, Meshy integration
 - **Audio Support**: Text-to-Speech and Speech-to-Text via OpenAI and Google
 - **Batch Processing**: CSV-based concurrent request execution (up to 200 parallel)
 - **Resilience Engine**: Exponential backoff, circuit breaker, rate limiting
+
+### Pure Zig — What Replaced What
+
+| Was (C/libc) | Now (pure Zig) |
+|---|---|
+| `std.c.pthread_mutex_*` | Atomic spinlock (`std.atomic.Value`) |
+| `std.c.clock_gettime` / `timespec` | `std.Io.Timestamp.now(io, .awake)` |
+| `std.c.nanosleep` / `usleep` | `io.sleep(Duration, .awake)` |
+| `std.c.arc4random_buf` | `std.Random.DefaultCsprng` |
+| C `fopen`/`fread`/`fseek` | `std.Io.Dir.readFileAlloc` |
+| `popen`/`pclose` | `std.process.run(allocator, io, ...)` |
+| `std.c.getenv` | `std.process.Environ.Map.get()` |
+| `std.c.environ` | `std.Io.Threaded.init(allocator, .{})` |
+| `std.heap.c_allocator` | `std.heap.smp_allocator` |
 
 ---
 
@@ -38,7 +54,7 @@ Add to your `build.zig.zon`:
 ```zig
 .dependencies = .{
     .http_sentinel = .{
-        .url = "https://github.com/quantum-encoding/zig-http-concurrent/archive/refs/tags/v1.0.0.tar.gz",
+        .url = "https://github.com/quantum-encoding/zig-http-concurrent/archive/refs/heads/main.tar.gz",
         .hash = "YOUR_HASH_HERE",
     },
 },
@@ -61,11 +77,9 @@ const std = @import("std");
 const HttpClient = @import("http-sentinel").HttpClient;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+    const allocator = std.heap.smp_allocator;
 
-    // Create client with std.Io.Threaded backend
+    // Create client — pure Zig, no libc
     var client = try HttpClient.init(allocator);
     defer client.deinit();
 
@@ -88,27 +102,32 @@ pub fn main() !void {
 
 ### The std.Io.Threaded Foundation
 
-HTTP Sentinel is built on Zig's modern `std.Io.Threaded` architecture:
+HTTP Sentinel is built entirely on Zig's `std.Io.Threaded` architecture — no C library calls:
 
 ```zig
 pub const HttpClient = struct {
     allocator: std.mem.Allocator,
-    io_threaded: *std.Io.Threaded,  // ← Key: Heap-allocated I/O subsystem
+    io_threaded: *std.Io.Threaded,
     client: http.Client,
 
     pub fn init(allocator: std.mem.Allocator) !HttpClient {
         const io_threaded = try allocator.create(std.Io.Threaded);
-        io_threaded.* = std.Io.Threaded.init(allocator);
-        const io = io_threaded.io();
+        io_threaded.* = std.Io.Threaded.init(allocator, .{});
+        const io_handle = io_threaded.io();
 
         return .{
             .allocator = allocator,
             .io_threaded = io_threaded,
             .client = http.Client{
                 .allocator = allocator,
-                .io = io,
+                .io = io_handle,
             },
         };
+    }
+
+    /// Get the Io handle for timing, sleep, random, etc.
+    pub fn io(self: *HttpClient) std.Io {
+        return self.io_threaded.io();
     }
 };
 ```
@@ -118,14 +137,13 @@ pub const HttpClient = struct {
 - Enables true thread-safe operation
 - No hidden shared state
 - Foundation of the client-per-worker pattern
-
-📖 **See [MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md) for complete implementation details**
+- Runs on any target — including custom Zig OSes
 
 ---
 
 ## The Client-Per-Worker Pattern
 
-### ✅ Correct: Each Thread Owns Its Client
+### Each Thread Owns Its Client
 
 ```zig
 const Worker = struct {
@@ -136,7 +154,7 @@ const Worker = struct {
         var client = HttpClient.init(self.allocator) catch unreachable;
         defer client.deinit();
 
-        // Make requests - no contention!
+        // Make requests — no contention!
         var response = client.get(url, &.{}) catch return;
         defer response.deinit();
 
@@ -150,53 +168,11 @@ for (&threads) |*thread| {
 }
 ```
 
-**Benefits**:
-- ✅ Zero contention (no mutexes needed)
-- ✅ True parallelism
-- ✅ Scales linearly with CPU cores
-- ✅ No race conditions
-- ✅ Simple, clear ownership
-
-### ❌ Incorrect: Sharing Clients (Don't Do This)
-
-```zig
-// This pattern is fundamentally broken in Zig 0.16
-var shared_client = HttpClient.init(allocator);
-var mutex = std.Thread.Mutex{};
-
-fn workerThread(client: *HttpClient, mutex: *std.Thread.Mutex) void {
-    mutex.lock();
-    defer mutex.unlock();
-    // Even with mutex, internal state can race!
-    const response = client.get(...);  // ← Race conditions possible
-}
-```
-
-**Why It Fails**:
-- `std.Io.Threaded` manages thread-local I/O resources
-- Internal buffers and state not protected by your mutex
-- Connection pooling state can race
-- TLS state is per-thread
-
 ---
 
 ## API Reference
 
-### Response Structure
-
-```zig
-pub const Response = struct {
-    status: http.Status,
-    body: []u8,
-    allocator: std.mem.Allocator,
-
-    pub fn deinit(self: *Response) void;
-};
-```
-
 ### HTTP Methods
-
-All methods follow RAII cleanup pattern:
 
 ```zig
 // GET
@@ -207,32 +183,12 @@ defer response.deinit();
 var response = try client.post(url, headers, body);
 defer response.deinit();
 
-// PUT
-var response = try client.put(url, headers, body);
-defer response.deinit();
-
-// PATCH
-var response = try client.patch(url, headers, body);
-defer response.deinit();
-
-// DELETE
-var response = try client.delete(url, headers);
-defer response.deinit();
-
-// HEAD
-var response = try client.head(url, headers);
-defer response.deinit();
+// PUT / PATCH / DELETE / HEAD — same pattern
 ```
 
 ### Request Options
 
 ```zig
-pub const RequestOptions = struct {
-    max_body_size: usize = 10 * 1024 * 1024,  // Default: 10MB
-    timeout_ns: u64 = 0,  // 0 = no timeout
-};
-
-// Custom options
 const options = HttpClient.RequestOptions{
     .max_body_size = 50 * 1024 * 1024,  // 50MB
     .timeout_ns = 30 * std.time.ns_per_s,  // 30 seconds
@@ -242,195 +198,36 @@ var response = try client.getWithOptions(url, headers, options);
 defer response.deinit();
 ```
 
----
+### AI Providers
 
-## Advanced Features
-
-### Automatic GZIP Decompression
-
-HTTP Sentinel automatically detects and decompresses gzip-encoded responses:
+Built-in clients for all major AI providers:
 
 ```zig
-// Server sends: Content-Encoding: gzip
-var response = try client.get(url, &.{});
-defer response.deinit();
+const ai = @import("http-sentinel").ai;
 
-// response.body is automatically decompressed
-std.debug.print("Decompressed body: {s}\n", .{response.body});
+// Anthropic Claude
+var claude = try ai.ClaudeClient.init(allocator, .{ .api_key = key });
+defer claude.deinit();
+var resp = try claude.sendMessage("Hello", .{ .model = "claude-sonnet-4-20250514" });
+
+// Also: OpenAI, DeepSeek, Gemini, Grok, Vertex AI
 ```
 
-### Custom Headers
-
-```zig
-const headers = [_]std.http.Header{
-    .{ .name = "Authorization", .value = "Bearer YOUR_TOKEN" },
-    .{ .name = "Content-Type", .value = "application/json" },
-    .{ .name = "User-Agent", .value = "MyApp/1.0" },
-};
-
-var response = try client.post(url, &headers, json_body);
-defer response.deinit();
-```
-
-### Error Handling
-
-```zig
-const response = client.get(url, &.{}) catch |err| {
-    std.debug.print("Request failed: {}\n", .{err});
-    return err;
-};
-defer response.deinit();
-
-// Check status before processing
-if (response.status != .ok) {
-    std.debug.print("HTTP error: {}\n", .{response.status});
-    return error.HttpError;
-}
-
-// Safe to parse body
-const data = try std.json.parseFromSlice(..., response.body, .{});
-```
-
----
-
-## Examples
-
-### Basic GET Request
+### Batch Processing
 
 ```bash
-zig build run-basic
+# CSV input, concurrent execution across providers
+zig-ai --batch requests.csv --concurrency 50 --output results.csv
 ```
-
-```zig
-const std = @import("std");
-const HttpClient = @import("http-sentinel").HttpClient;
-
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    var client = try HttpClient.init(gpa.allocator());
-    defer client.deinit();
-
-    var response = try client.get("https://httpbin.org/get", &.{});
-    defer response.deinit();
-
-    std.debug.print("{s}\n", .{response.body});
-}
-```
-
-### Concurrent Requests
-
-```bash
-zig build run-concurrent
-```
-
-```zig
-const Worker = struct {
-    id: usize,
-    allocator: std.mem.Allocator,
-    success_count: *std.atomic.Value(u32),
-
-    fn run(self: @This()) void {
-        var client = HttpClient.init(self.allocator) catch return;
-        defer client.deinit();
-
-        var i: u32 = 0;
-        while (i < 10) : (i += 1) {
-            var response = client.get(url, &.{}) catch continue;
-            defer response.deinit();
-
-            if (response.status == .ok) {
-                _ = self.success_count.fetchAdd(1, .monotonic);
-            }
-        }
-    }
-};
-
-pub fn main() !void {
-    var success_count = std.atomic.Value(u32).init(0);
-
-    var threads: [4]std.Thread = undefined;
-    for (&threads, 0..) |*thread, i| {
-        const worker = Worker{
-            .id = i,
-            .allocator = allocator,
-            .success_count = &success_count,
-        };
-        thread.* = try std.Thread.spawn(.{}, Worker.run, .{worker});
-    }
-
-    for (&threads) |*thread| {
-        thread.join();
-    }
-
-    std.debug.print("Completed: {}\n", .{success_count.load(.monotonic)});
-}
-```
-
-### AI Client (Anthropic Claude)
-
-```bash
-export ANTHROPIC_API_KEY=your_key_here
-zig build run-anthropic
-```
-
-Demonstrates:
-- JSON payload construction
-- API authentication
-- Response parsing
-- Multi-turn conversations
-
-See `examples/anthropic_client.zig` for full implementation.
 
 ---
 
 ## Testing
 
-Run the test suite:
-
 ```bash
-zig build test
-```
-
-Run examples:
-
-```bash
-zig build run-basic        # Basic GET/POST
-zig build run-concurrent   # Concurrent workers
-zig build run-anthropic    # AI client demo
-```
-
----
-
-## Performance
-
-### Benchmarks (4 workers, 20 total requests)
-
-```
-Pattern: Client-Per-Worker
-Workers: 4
-Requests per worker: 5
-
-Latency: 150-300ms per request (network dependent)
-Throughput: 40-60 requests/second
-Memory: ~2MB per worker (includes TLS state)
-CPU: <5% utilization (I/O bound)
-Contention: Zero (no mutexes)
-```
-
-### Memory Overhead
-
-```
-HttpClient instance: ~1.5KB
-  - std.Io.Threaded: ~512 bytes
-  - http.Client: ~1KB
-  - Bookkeeping: ~128 bytes
-
-Per-request: 100KB-10MB
-  - Response body: variable (default limit: 10MB)
-  - Transfer buffer: 8KB (stack)
-  - Internal buffers: ~2KB
+zig build test        # Run library tests
+zig build cli         # Build AI CLI tool
+zig build quantum     # Build Quantum Curl HTTP engine
 ```
 
 ---
@@ -439,119 +236,18 @@ Per-request: 100KB-10MB
 
 ### Requirements
 
-- **Zig Version**: 0.16.0-dev.2565+ (run `zig version` to check)
-- **OS**: Linux, macOS, Windows (TLS support required)
+- **Zig Version**: 0.16.0-dev.3091+ (run `zig version` to check)
+- **OS**: Linux, macOS, Windows, or any Zig-supported target (no libc required)
 - **Memory**: ~2-4MB per concurrent worker thread
-- **Network**: HTTPS/TLS support enabled
 
 ### Production Checklist
 
-- [ ] Use `std.heap.GeneralPurposeAllocator` in debug mode (detects leaks)
-- [ ] Use `std.heap.c_allocator` or arena in production (performance)
+- [ ] Use `std.heap.smp_allocator` for production (pure Zig, no libc)
 - [ ] Configure `RequestOptions.max_body_size` based on your APIs
 - [ ] Set `RequestOptions.timeout_ns` for all requests
 - [ ] Always check `response.status` before parsing body
 - [ ] Use `defer response.deinit()` immediately after request
 - [ ] One `HttpClient` per worker thread (never share!)
-- [ ] Profile memory under load with your actual workload
-
-### Error Handling Strategy
-
-```zig
-pub fn fetchData(allocator: std.mem.Allocator) ![]u8 {
-    var client = try HttpClient.init(allocator);
-    defer client.deinit();
-
-    var response = try client.get(url, &.{});
-    defer response.deinit();
-
-    // Validate status
-    if (response.status != .ok) {
-        return error.HttpError;
-    }
-
-    // Validate content type
-    // (would need to store headers in Response for this)
-
-    // Return owned copy
-    return try allocator.dupe(u8, response.body);
-}
-```
-
----
-
-## Migration from Older Versions
-
-### From Zig 0.11/0.12
-
-Key changes in Zig 0.16:
-
-```zig
-// OLD (0.11/0.12)
-const uri = try std.Uri.fromString(url);  // ❌ Removed
-
-// NEW (0.16)
-const uri = try std.Uri.parse(url);  // ✅ Use this
-```
-
-```zig
-// OLD (0.11/0.12)
-const module = b.createModule(.{
-    .source_file = .{ .path = "src/lib.zig" },  // ❌ Old API
-});
-
-// NEW (0.16)
-const module = b.addModule("name", .{
-    .root_source_file = b.path("src/lib.zig"),  // ✅ New API
-});
-```
-
-📖 **See [MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md) for complete migration guide**
-
----
-
-## Common Pitfalls
-
-### 1. Sharing Clients Across Threads ❌
-
-```zig
-// DON'T DO THIS
-var global_client = try HttpClient.init(allocator);
-for (threads) |*t| {
-    t.* = try std.Thread.spawn(.{}, worker, .{&global_client});
-}
-```
-
-**Fix**: Create client per thread (see Client-Per-Worker Pattern above)
-
-### 2. Forgetting defer ❌
-
-```zig
-// Memory leak!
-var response = try client.get(url, &.{});
-return;  // ← Leaked response.body
-```
-
-**Fix**: Always use `defer response.deinit();`
-
-### 3. Not Checking Status ❌
-
-```zig
-var response = try client.get(url, &.{});
-defer response.deinit();
-const data = try std.json.parseFromSlice(..., response.body);  // Might be error HTML!
-```
-
-**Fix**: Check `response.status` before parsing
-
-### 4. Wrong Header Type ❌
-
-```zig
-const headers = [_]std.http.Header{...};
-var response = try client.get(url, headers);  // Type error
-```
-
-**Fix**: Pass slice `&headers` not array
 
 ---
 
@@ -560,21 +256,10 @@ var response = try client.get(url, headers);  // Type error
 - **[MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md)** - Implementation patterns for Zig 0.16
 - **[examples/](examples/)** - Working code examples
 - **[src/http_client.zig](src/http_client.zig)** - Core HTTP client implementation
-- **[src/ai/](src/ai/)** - AI provider clients (Claude, OpenAI, DeepSeek, Gemini, Grok, Vertex)
+- **[src/ai/](src/ai/)** - AI provider clients (Claude, OpenAI, DeepSeek, Gemini, Grok, Vertex, ElevenLabs, HeyGen, Meshy)
 - **[src/audio/](src/audio/)** - Audio TTS/STT support
 - **[src/batch/](src/batch/)** - Batch processing engine
-
----
-
-## Contributing
-
-Contributions welcome! Please ensure:
-
-1. All tests pass (`zig build test`)
-2. Code follows Zig style conventions
-3. New features include tests and examples
-4. Documentation updated
-5. Runs on Zig 0.16.0+
+- **[src/retry/](src/retry/)** - Resilience engine (backoff, circuit breaker, rate limiting)
 
 ---
 
@@ -583,18 +268,10 @@ Contributions welcome! Please ensure:
 MIT License - See LICENSE file for details
 
 ```
-Copyright © 2025-2026 QUANTUM ENCODING LTD
+Copyright (c) 2025-2026 QUANTUM ENCODING LTD
 Website: https://quantumencoding.io
 Contact: info@quantumencoding.io
 ```
-
----
-
-## Acknowledgments
-
-This library emerged from production high-frequency trading systems at QUANTUM ENCODING LTD, where reliability and performance under extreme load are non-negotiable. The patterns documented here represent lessons learned from processing millions of requests in live trading environments.
-
-The `std.Io.Threaded` architecture is a fundamental shift in how HTTP clients work in Zig 0.16, and this library demonstrates the correct patterns for leveraging it in production.
 
 ---
 
@@ -602,6 +279,4 @@ The `std.Io.Threaded` architecture is a fundamental shift in how HTTP clients wo
 
 - **Issues**: [GitHub Issues](https://github.com/quantum-encoding/zig-http-concurrent/issues)
 - **Email**: [info@quantumencoding.io](mailto:info@quantumencoding.io)
-- **Docs**: [MODERN_ZIG_PATTERNS.md](MODERN_ZIG_PATTERNS.md)
-
-Built with ❤️ for the Zig community by QUANTUM ENCODING LTD
+- **Monorepo**: [quantum-zig-forge](https://github.com/quantum-encoding/quantum-zig-forge)

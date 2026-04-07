@@ -11,31 +11,25 @@
 
 const std = @import("std");
 
-/// Timer using clock_gettime (Timer removed in Zig 0.16)
+/// Pure Zig timer using Io.Timestamp (no libc)
 const Timer = struct {
-    start_ts: std.c.timespec,
+    start_ts: std.Io.Timestamp,
+    io: std.Io,
 
-    pub fn start() error{}!Timer {
-        var ts: std.c.timespec = undefined;
-        _ = std.c.clock_gettime(.MONOTONIC, &ts);
-        return Timer{ .start_ts = ts };
+    pub fn start(io: std.Io) Timer {
+        return .{ .start_ts = std.Io.Timestamp.now(io, .awake), .io = io };
     }
 
     pub fn read(self: *const Timer) u64 {
-        var now: std.c.timespec = undefined;
-        _ = std.c.clock_gettime(.MONOTONIC, &now);
-        const start_ns: i128 = @as(i128, self.start_ts.sec) * 1_000_000_000 + self.start_ts.nsec;
-        const now_ns: i128 = @as(i128, now.sec) * 1_000_000_000 + now.nsec;
-        const diff = now_ns - start_ns;
-        return if (diff > 0) @intCast(diff) else 0;
+        const elapsed = self.start_ts.untilNow(self.io, .awake);
+        const ns = elapsed.toNanoseconds();
+        return if (ns > 0) @intCast(ns) else 0;
     }
 };
 
-/// Get current Unix timestamp in seconds (REALTIME clock)
-fn getCurrentTimestamp() i64 {
-    var ts: std.c.timespec = undefined;
-    _ = std.c.clock_gettime(.REALTIME, &ts);
-    return ts.sec;
+/// Get current Unix timestamp in seconds (pure Zig via Io)
+fn getCurrentTimestamp(io: std.Io) i64 {
+    return std.Io.Timestamp.now(io, .real).toSeconds();
 }
 const HttpClient = @import("../http_client.zig").HttpClient;
 const common = @import("common.zig");
@@ -83,10 +77,10 @@ pub const GeminiClient = struct {
         context: []const common.AIMessage,
         config: common.RequestConfig,
     ) !common.AIResponse {
-        var timer = Timer.start() catch unreachable;
+        var timer = Timer.start(self.http_client.io());
 
         // Build contents array (Gemini format)
-        var contents = std.ArrayList(u8){};
+        var contents: std.ArrayList(u8) = .empty;
         defer contents.deinit(self.allocator);
 
         try contents.appendSlice(self.allocator, "[");
@@ -177,10 +171,10 @@ pub const GeminiClient = struct {
                 return common.AIError.InvalidResponse;
 
             // Extract text content and function calls from parts
-            var text_content = std.ArrayList(u8){};
+            var text_content: std.ArrayList(u8) = .empty;
             defer text_content.deinit(self.allocator);
 
-            var tool_calls_list = std.ArrayList(common.ToolCall){};
+            var tool_calls_list: std.ArrayList(common.ToolCall) = .empty;
             errdefer {
                 for (tool_calls_list.items) |*tc| tc.deinit();
                 tool_calls_list.deinit(self.allocator);
@@ -235,7 +229,7 @@ pub const GeminiClient = struct {
                         try text_content.toOwnedSlice(self.allocator)
                     else
                         try self.allocator.dupe(u8, ""),
-                    .timestamp = getCurrentTimestamp(),
+                    .timestamp = getCurrentTimestamp(self.http_client.io()),
                     .tool_calls = if (tool_calls_list.items.len > 0)
                         try tool_calls_list.toOwnedSlice(self.allocator)
                     else
@@ -265,7 +259,7 @@ pub const GeminiClient = struct {
         contents: []const u8,
         config: common.RequestConfig,
     ) ![]u8 {
-        var payload = std.ArrayList(u8){};
+        var payload: std.ArrayList(u8) = .empty;
         defer payload.deinit(self.allocator);
 
         try payload.appendSlice(self.allocator, "{");
@@ -706,8 +700,7 @@ pub const GeminiClient = struct {
             }
 
             // Sleep 2 seconds between polls
-            var ts: std.c.timespec = .{ .sec = 2, .nsec = 0 };
-            _ = std.c.nanosleep(&ts, &ts);
+            self.http_client.io().sleep(std.Io.Duration.fromSeconds(2), .awake) catch {};
         }
 
         return common.AIError.RequestTimeout;
@@ -769,7 +762,7 @@ pub const GeminiClient = struct {
         task_type: ?common.EmbeddingTaskType,
         output_dimensionality: ?u32,
     ) ![]common.EmbeddingResult {
-        var payload = std.ArrayList(u8){};
+        var payload: std.ArrayList(u8) = .empty;
         defer payload.deinit(self.allocator);
 
         try payload.appendSlice(self.allocator, "{\"content\":{\"parts\":[");

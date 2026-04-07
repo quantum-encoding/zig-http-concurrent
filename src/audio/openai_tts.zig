@@ -79,7 +79,7 @@ pub const OpenAITTSClient = struct {
 
     fn buildRequestPayload(self: *OpenAITTSClient, request: types.TTSRequest) ![]u8 {
         // Escape text for JSON
-        var escaped_text = std.ArrayList(u8){};
+        var escaped_text: std.ArrayList(u8) = .empty;
         defer escaped_text.deinit(self.allocator);
 
         for (request.text) |c| {
@@ -102,14 +102,14 @@ pub const OpenAITTSClient = struct {
         }
 
         // Build optional parts
-        var optional_parts = std.ArrayList(u8){};
+        var optional_parts: std.ArrayList(u8) = .empty;
         defer optional_parts.deinit(self.allocator);
 
         // Add instructions if provided and model supports it
         if (request.instructions) |instructions| {
             if (request.model.supportsInstructions()) {
                 // Escape instructions
-                var escaped_instructions = std.ArrayList(u8){};
+                var escaped_instructions: std.ArrayList(u8) = .empty;
                 defer escaped_instructions.deinit(self.allocator);
 
                 for (instructions) |c| {

@@ -136,7 +136,7 @@ pub const ResponseManifest = struct {
 
     /// Serialize to JSON string (allocated)
     pub fn toJsonString(self: *const ResponseManifest, allocator: std.mem.Allocator) ![]u8 {
-        var list = std.ArrayListUnmanaged(u8){};
+        var list: std.ArrayListUnmanaged(u8) = .empty;
         errdefer list.deinit(allocator);
 
         // Create a wrapper that writes to the array list

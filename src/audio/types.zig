@@ -557,7 +557,7 @@ pub const GoogleTTSResponse = struct {
         const data_size: u32 = @intCast(self.audio_data.len);
         const file_size: u32 = 36 + data_size;
 
-        var wav = std.ArrayList(u8){};
+        var wav: std.ArrayList(u8) = .empty;
         errdefer wav.deinit(allocator);
 
         // RIFF header

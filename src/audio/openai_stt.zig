@@ -133,7 +133,7 @@ pub const OpenAISTTClient = struct {
         boundary: []const u8,
         request: types.STTRequest,
     ) ![]u8 {
-        var body = std.ArrayList(u8){};
+        var body: std.ArrayList(u8) = .empty;
         defer body.deinit(self.allocator);
 
         // File field

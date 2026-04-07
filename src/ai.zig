@@ -11,7 +11,11 @@
 //! - DeepSeek (Anthropic-compatible, ultra-affordable)
 //! - Gemini (Google)
 //! - Grok (X.AI)
-//! - Vertex AI (Google Cloud)
+//! - OpenAI (GPT-5.x)
+//! - Vertex AI (Google Cloud — Gemini + Model Garden MaaS)
+//! - ElevenLabs (voice synthesis, TTS, cloning, dubbing)
+//! - Meshy (3D generation — text/image to 3D, remesh, retexture, rig, animate)
+//! - HeyGen (video synthesis — digital humans, avatars)
 //!
 //! Features:
 //! - Production-grade HTTP client (zig-http-sentinel)
@@ -27,13 +31,18 @@ const std = @import("std");
 pub const common = @import("ai/common.zig");
 pub const ResponseManager = @import("ai/response_manager.zig").ResponseManager;
 
-// Provider clients
+// Provider clients — text generation
 pub const ClaudeClient = @import("ai/claude.zig").ClaudeClient;
 pub const DeepSeekClient = @import("ai/deepseek.zig").DeepSeekClient;
 pub const GeminiClient = @import("ai/gemini.zig").GeminiClient;
 pub const GrokClient = @import("ai/grok.zig").GrokClient;
 pub const OpenAIClient = @import("ai/openai.zig").OpenAIClient;
 pub const VertexClient = @import("ai/vertex.zig").VertexClient;
+
+// Specialized media providers
+pub const ElevenLabsClient = @import("ai/elevenlabs.zig").ElevenLabsClient;
+pub const MeshyClient = @import("ai/meshy.zig").MeshyClient;
+pub const HeyGenClient = @import("ai/heygen.zig").HeyGenClient;
 
 // Re-export commonly used types
 pub const AIError = common.AIError;
@@ -166,30 +175,23 @@ pub const ProviderConfig = struct {
     location: ?[]const u8 = null,
 };
 
-/// Get API key from environment variable (Zig 0.16 compatible)
-pub fn getApiKeyFromEnv(allocator: std.mem.Allocator, var_name: []const u8) ![]const u8 {
-    const key_z = allocator.dupeZ(u8, var_name) catch {
-        std.debug.print("Error: Memory allocation failed\n", .{});
-        return error.OutOfMemory;
-    };
-    defer allocator.free(key_z);
-    const ptr = std.c.getenv(key_z) orelse {
+/// Get API key from environment variable (pure Zig — no libc)
+pub fn getApiKeyFromEnv(environ_map: *const std.process.Environ.Map, var_name: []const u8) ![]const u8 {
+    return environ_map.get(var_name) orelse {
         std.debug.print("Error: Environment variable '{s}' not set\n", .{var_name});
         return error.EnvironmentVariableNotFound;
     };
-    const len = std.mem.len(ptr);
-    return try allocator.dupe(u8, ptr[0..len]);
 }
 
-/// Pricing information for all providers (as of 2025)
+/// Pricing information for all providers (as of 2026-03)
 pub const Pricing = struct {
-    /// Claude Sonnet 4.5 pricing (per 1M tokens)
+    /// Claude Sonnet 4.6 pricing (per 1M tokens)
     pub const CLAUDE_SONNET_INPUT = 3.0;
     pub const CLAUDE_SONNET_OUTPUT = 15.0;
 
-    /// Claude Opus 4.1 pricing (per 1M tokens)
-    pub const CLAUDE_OPUS_INPUT = 15.0;
-    pub const CLAUDE_OPUS_OUTPUT = 75.0;
+    /// Claude Opus 4.6 pricing (per 1M tokens)
+    pub const CLAUDE_OPUS_INPUT = 5.0;
+    pub const CLAUDE_OPUS_OUTPUT = 25.0;
 
     /// Claude Haiku pricing (per 1M tokens)
     pub const CLAUDE_HAIKU_INPUT = 0.25;

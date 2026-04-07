@@ -102,7 +102,7 @@ pub const GoogleTTSClient = struct {
         defer self.allocator.free(escaped_text);
 
         // Build speaker configs array
-        var speaker_configs = std.ArrayList(u8){};
+        var speaker_configs: std.ArrayList(u8) = .empty;
         defer speaker_configs.deinit(self.allocator);
 
         for (speakers, 0..) |speaker, i| {
@@ -125,7 +125,7 @@ pub const GoogleTTSClient = struct {
     }
 
     fn escapeJson(self: *GoogleTTSClient, text: []const u8) ![]u8 {
-        var escaped = std.ArrayList(u8){};
+        var escaped: std.ArrayList(u8) = .empty;
         errdefer escaped.deinit(self.allocator);
 
         for (text) |c| {

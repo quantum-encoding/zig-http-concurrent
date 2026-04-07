@@ -378,7 +378,7 @@ test "TLS client initialization" {
 
     // Create dummy socket (won't actually connect)
     const sockfd = try posix.socket(posix.AF.INET, posix.SOCK.STREAM, posix.IPPROTO.TCP);
-    defer posix.close(sockfd);
+    defer _ = std.c.close(sockfd);
 
     var tls = try TlsClient.init(allocator, sockfd);
     defer tls.close();

@@ -12,9 +12,7 @@ const Exchange = @import("execution/exchange_client.zig").Exchange;
 const Credentials = @import("execution/exchange_client.zig").Credentials;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+    const allocator = std.heap.c_allocator;
 
     std.debug.print("\n🔱 WebSocket-over-TLS Integration Test 🔱\n", .{});
     std.debug.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n", .{});
